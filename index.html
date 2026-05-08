@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remote Mic Transmitter</title>
+    <style>
+        :root {
+            --bg: #121212;
+            --card: #1e1e1e;
+            --accent: #00ff88;
+            --text: #ffffff;
+        }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            width: 100%;
+            max-width: 400px;
+            background: var(--card);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        #visualizer {
+            width: 100%;
+            height: 100px;
+            background: #000;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .btn-start { background: var(--accent); color: #000; }
+        .btn-stop { background: #ff4444; color: #fff; }
+        .controls { margin-top: 20px; display: grid; gap: 10px; }
+        .row { display: flex; justify-content: space-between; align-items: center; }
+        .status { font-size: 0.8rem; color: #888; text-align: center; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Remote Mic</h2>
+    <canvas id="visualizer"></canvas>
+    
+    <button id="toggleBtn" class="btn-start" onclick="toggleMic()">START MIC</button>
+    
+    <div class="controls">
+        <div class="row">
+            <span>Noise Suppression</span>
+            <input type="checkbox" id="noiseOn" checked>
+        </div>
+        <div class="row">
+            <span>Echo Cancellation</span>
+            <input type="checkbox" id="echoOn" checked>
+        </div>
+        <div class="row">
+            <span>Input Gain</span>
+            <input type="range" id="gainSlider" min="1" max="10" step="0.5" value="1">
+        </div>
+    </div>
+    
+    <div class="status" id="statusText">System: Ready</div>
+</div>
+
+<script>
+    let audioCtx = null;
+    let stream = null;
+    let source = null;
+    let gainNode = null;
+    let analyser = null;
+    let isRunning = false;
+    let animationId = null;
+
+    const canvas = document.getElementById('visualizer');
+    const ctx = canvas.getContext('2d');
+    const statusText = document.getElementById('statusText');
+    const toggleBtn = document.getElementById('toggleBtn');
+
+    async function toggleMic() {
+        if (!isRunning) {
+            await startMic();
+        } else {
+            stopMic();
+        }
+    }
+
+    async function startMic() {
+        try {
+            // 1. Get User Media
+            const constraints = {
+                audio: {
+                    echoCancellation: document.getElementById('echoOn').checked,
+                    noiseSuppression: document.getElementById('noiseOn').checked,
+                    autoGainControl: true
+                }
+            };
+            
+            stream = await navigator.mediaDevices.getUserMedia(constraints);
+            
+            // 2. Initialize Audio Context
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)({
+                latencyHint: 'interactive',
+                sampleRate: 48000
+            });
+
+            // 3. Create Nodes
+            source = audioCtx.createMediaStreamSource(stream);
+            gainNode = audioCtx.createGain();
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 256;
+
+            // 4. Connect Graph
+            // Mic -> Gain -> Analyser -> Output (Bluetooth/Speaker)
+            source.connect(gainNode);
+            gainNode.connect(analyser);
+            analyser.connect(audioCtx.destination);
+
+            // Update UI
+            isRunning = true;
+            toggleBtn.textContent = "STOP MIC";
+            toggleBtn.className = "btn-stop";
+            statusText.textContent = "Status: Streaming to Bluetooth Output";
+            
+            updateGain();
+            drawVisualizer();
+
+            // Handle slider changes live
+            document.getElementById('gainSlider').oninput = updateGain;
+
+        } catch (err) {
+            console.error(err);
+            statusText.textContent = "Error: " + err.message;
+        }
+    }
+
+    function stopMic() {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+        }
+        if (audioCtx) {
+            audioCtx.close();
+        }
+        cancelAnimationFrame(animationId);
+        
+        isRunning = false;
+        toggleBtn.textContent = "START MIC";
+        toggleBtn.className = "btn-start";
+        statusText.textContent = "Status: Stopped";
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function updateGain() {
+        if (gainNode) {
+            gainNode.gain.value = document.getElementById('gainSlider').value;
+        }
+    }
+
+    function drawVisualizer() {
+        if (!isRunning) return;
+        animationId = requestAnimationFrame(drawVisualizer);
+        
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        analyser.getByteFrequencyData(dataArray);
+
+        ctx.fillStyle = 'rgb(0, 0, 0)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const barWidth = (canvas.width / bufferLength) * 2.5;
+        let x = 0;
+
+        for(let i = 0; i < bufferLength; i++) {
+            const barHeight = dataArray[i] / 2;
+            ctx.fillStyle = `rgb(0, 255, 136)`;
+            ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+            x += barWidth + 1;
+        }
+    }
+</script>
+</body>
+</html>
