@@ -2,89 +2,57 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HearLink Pro - SNR Optimized</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HearLink Ultra - Low Latency</title>
     <style>
-        :root {
-            --bg: #050505;
-            --card: #111111;
-            --accent: #00ffcc;
-            --text: #ffffff;
-        }
-        body {
-            background: var(--bg);
-            color: var(--text);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 15px;
-            margin: 0;
-        }
-        .container {
-            width: 100%;
-            max-width: 380px;
-            background: var(--card);
-            padding: 20px;
-            border-radius: 24px;
-            border: 1px solid #222;
-        }
-        #visualizer {
-            width: 100%;
-            height: 100px;
-            background: #000;
-            border-radius: 12px;
-            margin-bottom: 20px;
-        }
-        button {
-            width: 100%;
-            padding: 18px;
-            font-size: 1.1rem;
-            font-weight: 800;
-            border: none;
-            border-radius: 14px;
-            cursor: pointer;
-            transition: 0.2s;
-        }
+        :root { --bg: #0a0a0a; --card: #161616; --accent: #34d399; --text: #ffffff; }
+        body { background: var(--bg); color: var(--text); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 15px; margin: 0; }
+        .container { width: 100%; max-width: 380px; background: var(--card); padding: 25px; border-radius: 30px; border: 1px solid #333; box-shadow: 0 10px 50px rgba(0,0,0,0.8); }
+        #visualizer { width: 100%; height: 80px; background: #000; border-radius: 15px; margin-bottom: 20px; }
+        button { width: 100%; padding: 20px; font-size: 1.2rem; font-weight: 800; border: none; border-radius: 18px; cursor: pointer; transition: 0.2s; }
         .btn-start { background: var(--accent); color: #000; }
-        .btn-stop { background: #ff4444; color: #fff; }
+        .btn-stop { background: #ff4757; color: #fff; }
         .controls { margin-top: 25px; display: flex; flex-direction: column; gap: 20px; }
         .row { display: flex; justify-content: space-between; align-items: center; }
-        .val-badge { background: #222; padding: 4px 10px; border-radius: 8px; color: var(--accent); font-family: monospace; }
-        .status { font-size: 0.85rem; color: #666; text-align: center; margin-top: 20px; }
-        input[type=range] { width: 100%; height: 8px; border-radius: 5px; background: #333; accent-color: var(--accent); }
+        .val-badge { background: #222; padding: 5px 12px; border-radius: 10px; color: var(--accent); font-family: monospace; font-weight: bold; }
+        .status { font-size: 0.8rem; color: #555; text-align: center; margin-top: 20px; letter-spacing: 1px; }
+        input[type=range] { width: 100%; height: 6px; border-radius: 5px; background: #333; accent-color: var(--accent); cursor: pointer; }
+        .hint { font-size: 0.75rem; color: #777; margin-top: 4px; line-height: 1.4; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2 style="margin-top:0; color:var(--accent);">HearLink Pro</h2>
+    <h2 style="margin:0 0 15px 0; font-size: 1.5rem; text-align: center;">HearLink <span style="color:var(--accent)">Ultra</span></h2>
     <canvas id="visualizer"></canvas>
     
-    <button id="toggleBtn" class="btn-start" onclick="toggleMic()">START MIC</button>
+    <button id="toggleBtn" class="btn-start" onclick="toggleMic()">ENABLE STREAM</button>
     
     <div class="controls">
         <div>
-            <div class="row" style="margin-bottom:8px;">
-                <span>Mic Sensitivity</span>
-                <span class="val-badge" id="gainVal">20%</span>
+            <div class="row">
+                <span style="font-weight:600;">Stream Volume</span>
+                <span class="val-badge" id="gainVal">15%</span>
             </div>
-            <input type="range" id="gainSlider" min="0.01" max="2.0" step="0.01" value="0.2">
-            <div style="font-size:0.7rem; color:#888; margin-top:5px;">Lower this to reduce the "echo" of your own voice.</div>
+            <input type="range" id="gainSlider" min="0.01" max="1.5" step="0.01" value="0.15">
+            <div class="hint">Keep this low (10-20%) to prioritize clarity over loudness.</div>
         </div>
 
-        <div class="row">
-            <span>Speech Clarity (High-Pass)</span>
-            <input type="checkbox" id="filterOn" checked>
+        <div style="background: #222; padding: 15px; border-radius: 15px;">
+            <div class="row">
+                <span style="font-size: 0.9rem;">Own-Voice Suppression</span>
+                <input type="checkbox" id="filterOn" checked>
+            </div>
+            <div class="hint">Removes low-frequency "echo" of your own voice.</div>
         </div>
         
         <div class="row">
-            <span>Background Noise Filter</span>
-            <input type="checkbox" id="noiseOn" checked>
+            <span style="font-size: 0.9rem;">Latency Mode</span>
+            <span style="color: var(--accent); font-size: 0.8rem; font-weight: bold;">ULTRA-LOW</span>
         </div>
     </div>
     
-    <div class="status" id="statusText">Ready</div>
+    <div class="status" id="statusText">System Ready</div>
 </div>
 
 <script>
@@ -100,47 +68,53 @@
     async function toggleMic() {
         if (!isRunning) {
             try {
+                // Constraints optimized for hearing aid behavior
                 stream = await navigator.mediaDevices.getUserMedia({
                     audio: {
                         echoCancellation: true,
-                        noiseSuppression: document.getElementById('noiseOn').checked,
-                        autoGainControl: false 
+                        noiseSuppression: true,
+                        autoGainControl: false,
+                        latency: 0,
+                        channelCount: 1 // Reduces processing data
                     }
                 });
                 
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+                // audioContext with 'interactive' latency is crucial for real-time speech
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)({ 
+                    latencyHint: 'interactive',
+                    sampleRate: 44100 // Standard for high-speed processing
+                });
+
                 source = audioCtx.createMediaStreamSource(stream);
                 
-                // 1. High Pass Filter (removes 'boomy' own-voice frequencies)
+                // High Pass Filter - set to 400Hz to aggressively cut "own voice" boominess
                 filterNode = audioCtx.createBiquadFilter();
                 filterNode.type = "highpass";
-                filterNode.frequency.value = 300; // Filter out sounds below 300Hz
+                filterNode.frequency.value = 400; 
 
-                // 2. Gain Node
                 gainNode = audioCtx.createGain();
                 updateSettings();
 
-                // 3. Analyser
                 analyser = audioCtx.createAnalyser();
-                analyser.fftSize = 256;
+                analyser.fftSize = 64; // Minimal size to reduce draw-time lag
 
-                // Chain: Source -> Filter -> Gain -> Destination & Analyser
+                // Route: Mic -> Filter -> Gain -> Bluetooth Output
                 source.connect(filterNode);
                 filterNode.connect(gainNode);
                 gainNode.connect(audioCtx.destination);
                 gainNode.connect(analyser);
 
                 isRunning = true;
-                toggleBtn.textContent = "STOP MIC";
+                toggleBtn.textContent = "STOP STREAM";
                 toggleBtn.className = "btn-stop";
-                document.getElementById('statusText').textContent = "Streaming...";
+                document.getElementById('statusText').textContent = "MODE: ACTIVE";
                 drawVisualizer();
                 
                 gainSlider.oninput = updateSettings;
                 document.getElementById('filterOn').onchange = updateSettings;
 
             } catch (err) {
-                alert("Mic access error: " + err.message);
+                document.getElementById('statusText').textContent = "ERROR: " + err.message;
             }
         } else {
             stopMic();
@@ -152,24 +126,19 @@
         if (audioCtx) audioCtx.close();
         cancelAnimationFrame(animationId);
         isRunning = false;
-        toggleBtn.textContent = "START MIC";
+        toggleBtn.textContent = "ENABLE STREAM";
         toggleBtn.className = "btn-start";
-        document.getElementById('statusText').textContent = "Stopped";
+        document.getElementById('statusText').textContent = "MODE: IDLE";
         ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
 
     function updateSettings() {
         const gainVal = parseFloat(gainSlider.value);
         gainValDisplay.textContent = Math.round(gainVal * 100) + "%";
-        
-        if (gainNode) {
-            gainNode.gain.setTargetAtTime(gainVal, audioCtx.currentTime, 0.01);
-        }
-        
+        if (gainNode) gainNode.gain.setTargetAtTime(gainVal, audioCtx.currentTime, 0.01);
         if (filterNode) {
             const isFilterOn = document.getElementById('filterOn').checked;
-            // When filter is off, we set it to a very low frequency so it does nothing
-            filterNode.frequency.setTargetAtTime(isFilterOn ? 300 : 10, audioCtx.currentTime, 0.01);
+            filterNode.frequency.setTargetAtTime(isFilterOn ? 400 : 10, audioCtx.currentTime, 0.01);
         }
     }
 
@@ -185,7 +154,7 @@
         let x = 0;
         for(let i = 0; i < bufferLength; i++) {
             const barHeight = (dataArray[i] / 255) * canvas.height;
-            ctx.fillStyle = '#00ffcc';
+            ctx.fillStyle = '#34d399';
             ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
             x += barWidth + 1;
         }
