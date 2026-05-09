@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HearLink V12 - Pure Isolation</title>
+    <title>HearLink V13 - Force-Safe</title>
     <style>
         :root { --bg: #020617; --card: #0f172a; --accent: #10b981; --text: #f8fafc; }
         body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
@@ -15,30 +15,23 @@
         .panel { background: #1e293b; padding: 15px; border-radius: 15px; border: 1px solid #334155; }
         .label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; display: block; }
         input[type=range] { width: 100%; height: 10px; border-radius: 5px; background: #334155; accent-color: var(--accent); cursor: pointer; }
-        .status-badge { font-size: 0.7rem; color: var(--accent); background: #064e3b33; padding: 6px 12px; border-radius: 20px; border: 1px solid #064e3b; margin-bottom: 20px; display: inline-block; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div style="text-align:center;">
-        <h2 style="margin:0 0 5px 0;">HearLink <span style="color:var(--accent)">V12</span></h2>
-        <div class="status-badge" id="statusBadge">HARDWARE: PURE PHONE MIC</div>
+        <h2 style="margin:0 0 10px 0;">HearLink <span style="color:var(--accent)">V13</span></h2>
+        <div id="statusBadge" style="font-size:0.7rem; color:var(--accent); background:#064e3b33; padding:6px 12px; border-radius:20px; margin-bottom:20px; display:inline-block;">READY</div>
     </div>
 
     <canvas id="visualizer"></canvas>
     
-    <button id="toggleBtn" class="btn-start" onclick="startAbsoluteIsolation()">ACTIVATE PURE MIC</button>
+    <button id="toggleBtn" class="btn-start" onclick="startSystem()">ACTIVATE PURE MIC</button>
     
     <div class="panel">
-        <span class="label">Remote Sensitivity <span style="float:right; color:var(--accent);" id="gainVal">25%</span></span>
+        <span class="label">Phone Mic Gain <span style="float:right; color:var(--accent);" id="gainVal">25%</span></span>
         <input type="range" id="masterGain" min="0" max="3.0" step="0.01" value="0.25">
-        <div style="font-size: 0.7rem; color: #64748b; line-height: 1.4; margin-top: 12px;">
-            <strong>V12 Logic Active:</strong><br>
-            • Fixed Canvas Reference Error.<br>
-            • Raw Hardware Input: Disabled Browser Echo Cancellation.<br>
-            • 450Hz High-Pass: Removes own-voice bass rumble.
-        </div>
     </div>
 </div>
 
@@ -46,61 +39,62 @@
     let audioCtx, stream, source, gainNode, filter, analyser;
     let isRunning = false, animationId;
     
-    // Globally define canvas and context to avoid "not defined" errors
     const canvas = document.getElementById('visualizer');
     const visualCtx = canvas.getContext('2d');
 
-    async function startAbsoluteIsolation() {
-        if (!isRunning) {
-            try {
-                // 1. Identify Internal Mic exclusively
-                const devices = await navigator.mediaDevices.enumerateDevices();
-                const internalMic = devices.filter(d => d.kind === 'audioinput').find(d => 
-                    !d.label.toLowerCase().includes('bluetooth') && 
-                    !d.label.toLowerCase().includes('hands-free')
-                );
+    async function startSystem() {
+        if (isRunning) { location.reload(); return; }
 
-                // 2. Request RAW Audio
-                // Setting echoCancellation to false stops the browser from monitoring 
-                // the Bluetooth output to "correct" the input.
-                stream = await navigator.mediaDevices.getUserMedia({ 
-                    audio: { 
-                        deviceId: internalMic ? { exact: internalMic.deviceId } : undefined,
-                        echoCancellation: false, 
-                        noiseSuppression: false,
-                        autoGainControl: false 
-                    } 
-                });
+        try {
+            // 1. CLEAR EXISTING LOCKS: Request a dummy stream and immediately kill it to reset hardware
+            const resetStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            resetStream.getTracks().forEach(t => t.stop());
 
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
-                source = audioCtx.createMediaStreamSource(stream);
-                
-                // 3. Clinical Frequency Shaping
-                filter = audioCtx.createBiquadFilter();
-                filter.type = "highpass";
-                filter.frequency.value = 450; // Increased to 450Hz to further isolate own-voice
+            // 2. FIND PHONE MIC ONLY: Exclude anything with "Bluetooth" in the label
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const phoneMic = devices.find(d => d.kind === 'audioinput' && 
+                !d.label.toLowerCase().includes('bluetooth') && 
+                !d.label.toLowerCase().includes('hands-free'));
 
-                gainNode = audioCtx.createGain();
-                analyser = audioCtx.createAnalyser();
-                analyser.fftSize = 64;
+            // 3. RAW INPUT MODE: Disable all processing that might trigger the BT Mic
+            stream = await navigator.mediaDevices.getUserMedia({ 
+                audio: { 
+                    deviceId: phoneMic ? { exact: phoneMic.deviceId } : undefined,
+                    echoCancellation: false, 
+                    noiseSuppression: false,
+                    autoGainControl: false 
+                } 
+            });
 
-                source.connect(filter);
-                filter.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-                gainNode.connect(analyser);
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+            source = audioCtx.createMediaStreamSource(stream);
+            
+            // 4. CUT OWN-VOICE: 450Hz High-pass removes the "echo" of the wearer speaking
+            filter = audioCtx.createBiquadFilter();
+            filter.type = "highpass";
+            filter.frequency.value = 450; 
 
-                isRunning = true;
-                document.getElementById('toggleBtn').textContent = "STOP SYSTEM";
-                document.getElementById('toggleBtn').className = "btn-stop";
-                updateGain();
-                drawVisualizer();
-                document.getElementById('masterGain').oninput = updateGain;
+            gainNode = audioCtx.createGain();
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 64;
 
-            } catch (err) {
-                alert("Hardware Conflict: " + err.message);
-            }
-        } else {
-            location.reload(); // Clean hardware release
+            source.connect(filter);
+            filter.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            gainNode.connect(analyser);
+
+            isRunning = true;
+            document.getElementById('toggleBtn').textContent = "STOP & RESET";
+            document.getElementById('toggleBtn').className = "btn-stop";
+            document.getElementById('statusBadge').textContent = "LOCKED: " + (phoneMic ? "INTERNAL MIC" : "DEFAULT");
+            
+            updateGain();
+            drawVisualizer();
+            document.getElementById('masterGain').oninput = updateGain;
+
+        } catch (err) {
+            document.getElementById('statusBadge').textContent = "ERROR: " + err.message;
+            console.error(err);
         }
     }
 
@@ -117,7 +111,6 @@
         const dataArray = new Uint8Array(analyser.frequencyBinCount);
         analyser.getByteFrequencyData(dataArray);
         
-        // Use the globally defined visualCtx
         visualCtx.fillStyle = '#020617';
         visualCtx.fillRect(0, 0, canvas.width, canvas.height);
         for(let i = 0; i < dataArray.length; i++) {
