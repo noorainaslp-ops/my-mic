@@ -3,120 +3,141 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HearLink V13 - Force-Safe</title>
+    <title>HearLink V14 - CAPD Clarity</title>
     <style>
-        :root { --bg: #020617; --card: #0f172a; --accent: #10b981; --text: #f8fafc; }
+        :root { --bg: #020617; --card: #0f172a; --accent: #38bdf8; --text: #f8fafc; }
         body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
-        .container { width: 100%; max-width: 380px; background: var(--card); padding: 25px; border-radius: 28px; border: 1px solid #1e293b; }
-        #visualizer { width: 100%; height: 90px; background: #000; border-radius: 16px; margin-bottom: 20px; border: 1px solid #1e293b; }
-        button { width: 100%; padding: 18px; font-size: 1.1rem; font-weight: 700; border: none; border-radius: 14px; cursor: pointer; transition: 0.2s; margin-bottom: 15px;}
-        .btn-start { background: var(--accent); color: #064e3b; }
-        .btn-stop { background: #ef4444; color: #fff; }
-        .panel { background: #1e293b; padding: 15px; border-radius: 15px; border: 1px solid #334155; }
-        .label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; display: block; }
+        .container { width: 100%; max-width: 380px; background: var(--card); padding: 25px; border-radius: 32px; border: 1px solid #1e293b; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        #visualizer { width: 100%; height: 100px; background: #000; border-radius: 20px; margin-bottom: 25px; border: 1px solid #334155; }
+        button { width: 100%; padding: 20px; font-size: 1.15rem; font-weight: 800; border: none; border-radius: 18px; cursor: pointer; transition: 0.2s; letter-spacing: 0.5px; }
+        .btn-start { background: var(--accent); color: #082f49; }
+        .btn-stop { background: #f43f5e; color: #fff; }
+        .panel { background: #1e293b; padding: 20px; border-radius: 20px; border: 1px solid #334155; margin-top: 25px; display: flex; flex-direction: column; gap: 20px; }
+        .row { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; font-weight: 600; }
+        .badge { background: #082f49; color: var(--accent); padding: 4px 10px; border-radius: 8px; font-family: monospace; }
         input[type=range] { width: 100%; height: 10px; border-radius: 5px; background: #334155; accent-color: var(--accent); cursor: pointer; }
+        .info-tag { font-size: 0.65rem; color: #94a3b8; line-height: 1.5; padding-top: 10px; border-top: 1px solid #334155; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div style="text-align:center;">
-        <h2 style="margin:0 0 10px 0;">HearLink <span style="color:var(--accent)">V13</span></h2>
-        <div id="statusBadge" style="font-size:0.7rem; color:var(--accent); background:#064e3b33; padding:6px 12px; border-radius:20px; margin-bottom:20px; display:inline-block;">READY</div>
+    <div style="text-align:center; margin-bottom:15px;">
+        <h2 style="margin:0; font-size: 1.5rem;">HearLink <span style="color:var(--accent)">CAPD</span></h2>
+        <div style="font-size:0.7rem; background:#0ea5e922; color:#7dd3fc; border:1px solid #0ea5e944; display:inline-block; padding:4px 12px; border-radius:20px; margin-top:8px;">ULTRA-CLARITY MODE</div>
     </div>
 
     <canvas id="visualizer"></canvas>
     
-    <button id="toggleBtn" class="btn-start" onclick="startSystem()">ACTIVATE PURE MIC</button>
+    <button id="toggleBtn" class="btn-start" onclick="initCapdSystem()">START SPEECH FOCUS</button>
     
     <div class="panel">
-        <span class="label">Phone Mic Gain <span style="float:right; color:var(--accent);" id="gainVal">25%</span></span>
-        <input type="range" id="masterGain" min="0" max="3.0" step="0.01" value="0.25">
+        <div>
+            <div class="row"><span>Speech Intensity</span><span class="badge" id="gainVal">25%</span></div>
+            <input type="range" id="masterGain" min="0.01" max="2.0" step="0.01" value="0.25">
+        </div>
+        <div>
+            <div class="row"><span>Consonant Sharpness</span><span class="badge" id="sharpVal">High</span></div>
+            <input type="range" id="eqGain" min="0" max="15" step="1" value="10">
+        </div>
+        <div class="info-tag">
+            <strong>CAPD Logic Enabled:</strong><br>
+            • Pure-Path Hardware Lock (Internal Mic Only)<br>
+            • 500Hz Cut (Removes Background Rumble)<br>
+            • 2.5kHz Boost (Enhances Speech Definition)
+        </div>
     </div>
 </div>
 
 <script>
-    let audioCtx, stream, source, gainNode, filter, analyser;
+    let audioCtx, stream, source, eqHigh, eqPeak, dynamics, gainNode, analyser;
     let isRunning = false, animationId;
-    
-    const canvas = document.getElementById('visualizer');
-    const visualCtx = canvas.getContext('2d');
 
-    async function startSystem() {
+    async function initCapdSystem() {
         if (isRunning) { location.reload(); return; }
-
         try {
-            // 1. CLEAR EXISTING LOCKS: Request a dummy stream and immediately kill it to reset hardware
-            const resetStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            resetStream.getTracks().forEach(t => t.stop());
-
-            // 2. FIND PHONE MIC ONLY: Exclude anything with "Bluetooth" in the label
+            // 1. Exclusive Internal Hardware Lock
             const devices = await navigator.mediaDevices.enumerateDevices();
             const phoneMic = devices.find(d => d.kind === 'audioinput' && 
                 !d.label.toLowerCase().includes('bluetooth') && 
                 !d.label.toLowerCase().includes('hands-free'));
 
-            // 3. RAW INPUT MODE: Disable all processing that might trigger the BT Mic
             stream = await navigator.mediaDevices.getUserMedia({ 
                 audio: { 
                     deviceId: phoneMic ? { exact: phoneMic.deviceId } : undefined,
-                    echoCancellation: false, 
-                    noiseSuppression: false,
-                    autoGainControl: false 
+                    echoCancellation: false, noiseSuppression: true, autoGainControl: false 
                 } 
             });
 
             audioCtx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
             source = audioCtx.createMediaStreamSource(stream);
             
-            // 4. CUT OWN-VOICE: 450Hz High-pass removes the "echo" of the wearer speaking
-            filter = audioCtx.createBiquadFilter();
-            filter.type = "highpass";
-            filter.frequency.value = 450; 
+            // 2. Spectral Shaping
+            eqHigh = audioCtx.createBiquadFilter();
+            eqHigh.type = "highpass";
+            eqHigh.frequency.value = 500; // Sharp cut for background noise
+
+            eqPeak = audioCtx.createBiquadFilter();
+            eqPeak.type = "peaking";
+            eqPeak.frequency.value = 2500; // consonant clarification peak
+            eqPeak.Q.value = 1.2;
+            eqPeak.gain.value = 10;
+
+            // 3. Temporal Compression
+            dynamics = audioCtx.createDynamicsCompressor();
+            dynamics.threshold.value = -20;
+            dynamics.attack.value = 0.01; // Fast attack for phoneme preservation
+            dynamics.release.value = 0.20;
 
             gainNode = audioCtx.createGain();
             analyser = audioCtx.createAnalyser();
-            analyser.fftSize = 64;
+            analyser.fftSize = 128;
 
-            source.connect(filter);
-            filter.connect(gainNode);
+            // Connection Chain: Mic -> SNR Filter -> Peak EQ -> Dynamics -> BT Output
+            source.connect(eqHigh);
+            eqHigh.connect(eqPeak);
+            eqPeak.connect(dynamics);
+            dynamics.connect(gainNode);
             gainNode.connect(audioCtx.destination);
             gainNode.connect(analyser);
 
             isRunning = true;
             document.getElementById('toggleBtn').textContent = "STOP & RESET";
             document.getElementById('toggleBtn').className = "btn-stop";
-            document.getElementById('statusBadge').textContent = "LOCKED: " + (phoneMic ? "INTERNAL MIC" : "DEFAULT");
             
-            updateGain();
+            updateUI();
             drawVisualizer();
-            document.getElementById('masterGain').oninput = updateGain;
+            document.getElementById('masterGain').oninput = updateUI;
+            document.getElementById('eqGain').oninput = updateUI;
 
         } catch (err) {
-            document.getElementById('statusBadge').textContent = "ERROR: " + err.message;
-            console.error(err);
+            alert("Hardware Error: " + err.message);
         }
     }
 
-    function updateGain() {
+    function updateUI() {
         if (!isRunning) return;
-        const val = parseFloat(document.getElementById('masterGain').value);
-        document.getElementById('gainVal').textContent = Math.round(val * 100) + "%";
-        gainNode.gain.setTargetAtTime(val, audioCtx.currentTime, 0.01);
+        const g = parseFloat(document.getElementById('masterGain').value);
+        const s = parseFloat(document.getElementById('eqGain').value);
+        gainNode.gain.setTargetAtTime(g, audioCtx.currentTime, 0.01);
+        eqPeak.gain.setTargetAtTime(s, audioCtx.currentTime, 0.01);
+        document.getElementById('gainVal').textContent = Math.round(g * 100) + "%";
+        document.getElementById('sharpVal').textContent = s > 10 ? "Ultra" : (s > 5 ? "High" : "Low");
     }
 
     function drawVisualizer() {
         if (!isRunning) return;
         animationId = requestAnimationFrame(drawVisualizer);
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
-        analyser.getByteFrequencyData(dataArray);
-        
-        visualCtx.fillStyle = '#020617';
-        visualCtx.fillRect(0, 0, canvas.width, canvas.height);
-        for(let i = 0; i < dataArray.length; i++) {
-            const barHeight = (dataArray[i] / 255) * canvas.height;
-            visualCtx.fillStyle = '#10b981';
-            visualCtx.fillRect(i * 12, canvas.height - barHeight, 8, barHeight);
+        const data = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(data);
+        const canvas = document.getElementById('visualizer');
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        for(let i = 0; i < data.length; i++) {
+            const h = (data[i] / 255) * canvas.height;
+            ctx.fillStyle = '#38bdf8';
+            ctx.fillRect(i * 3, canvas.height - h, 2, h);
         }
     }
 </script>
