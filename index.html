@@ -3,60 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HearLink V14 - CAPD Clarity</title>
+    <title>HearLink - Speech Focus</title>
     <style>
-        :root { --bg: #020617; --card: #0f172a; --accent: #38bdf8; --text: #f8fafc; }
-        body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
-        .container { width: 100%; max-width: 380px; background: var(--card); padding: 25px; border-radius: 32px; border: 1px solid #1e293b; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
-        #visualizer { width: 100%; height: 100px; background: #000; border-radius: 20px; margin-bottom: 25px; border: 1px solid #334155; }
-        button { width: 100%; padding: 20px; font-size: 1.15rem; font-weight: 800; border: none; border-radius: 18px; cursor: pointer; transition: 0.2s; letter-spacing: 0.5px; }
-        .btn-start { background: var(--accent); color: #082f49; }
-        .btn-stop { background: #f43f5e; color: #fff; }
-        .panel { background: #1e293b; padding: 20px; border-radius: 20px; border: 1px solid #334155; margin-top: 25px; display: flex; flex-direction: column; gap: 20px; }
-        .row { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; font-weight: 600; }
-        .badge { background: #082f49; color: var(--accent); padding: 4px 10px; border-radius: 8px; font-family: monospace; }
-        input[type=range] { width: 100%; height: 10px; border-radius: 5px; background: #334155; accent-color: var(--accent); cursor: pointer; }
-        .info-tag { font-size: 0.65rem; color: #94a3b8; line-height: 1.5; padding-top: 10px; border-top: 1px solid #334155; }
+        :root { --bg: #050505; --card: #121212; --accent: #00ffaa; --text: #ffffff; --border: #222; }
+        body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
+        .container { width: 100%; max-width: 380px; background: var(--card); padding: 25px; border-radius: 24px; border: 1px solid var(--border); box-shadow: 0 30px 60px rgba(0,0,0,0.6); }
+        #visualizer { width: 100%; height: 100px; background: #000; border-radius: 12px; margin-bottom: 20px; }
+        button { width: 100%; padding: 18px; font-size: 1.1rem; font-weight: 800; border: none; border-radius: 14px; cursor: pointer; transition: 0.2s; text-transform: uppercase; letter-spacing: 1px;}
+        .btn-start { background: var(--accent); color: #000; }
+        .btn-stop { background: #ff3344; color: #fff; }
+        .controls { background: #1a1a1a; padding: 20px; border-radius: 18px; border: 1px solid var(--border); margin-top: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .row { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; font-weight: 700; color: #888; }
+        .badge { color: var(--accent); font-family: monospace; font-size: 0.9rem; }
+        input[type=range] { width: 100%; height: 8px; border-radius: 4px; background: #333; accent-color: var(--accent); cursor: pointer; }
+        .status-tag { font-size: 0.65rem; color: #444; text-align: center; margin-top: 15px; text-transform: uppercase; font-weight: 800; letter-spacing: 2px;}
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div style="text-align:center; margin-bottom:15px;">
-        <h2 style="margin:0; font-size: 1.5rem;">HearLink <span style="color:var(--accent)">CAPD</span></h2>
-        <div style="font-size:0.7rem; background:#0ea5e922; color:#7dd3fc; border:1px solid #0ea5e944; display:inline-block; padding:4px 12px; border-radius:20px; margin-top:8px;">ULTRA-CLARITY MODE</div>
-    </div>
-
+    <h2 style="margin:0 0 15px 0; text-align: center;">HearLink <span style="color:var(--accent)">FOCUS</span></h2>
+    
     <canvas id="visualizer"></canvas>
     
-    <button id="toggleBtn" class="btn-start" onclick="initCapdSystem()">START SPEECH FOCUS</button>
+    <button id="toggleBtn" class="btn-start" onclick="initSpeechFocus()">START FOCUS MODE</button>
     
-    <div class="panel">
+    <div class="controls">
         <div>
-            <div class="row"><span>Speech Intensity</span><span class="badge" id="gainVal">25%</span></div>
+            <div class="row"><span>Speech Volume</span><span class="badge" id="gainVal">25%</span></div>
             <input type="range" id="masterGain" min="0.01" max="2.0" step="0.01" value="0.25">
         </div>
         <div>
-            <div class="row"><span>Consonant Sharpness</span><span class="badge" id="sharpVal">High</span></div>
-            <input type="range" id="eqGain" min="0" max="15" step="1" value="10">
+            <div class="row"><span>Signal Sharpness</span><span class="badge" id="eqVal">Optimal</span></div>
+            <input type="range" id="eqGain" min="0" max="12" step="1" value="6">
         </div>
-        <div class="info-tag">
-            <strong>CAPD Logic Enabled:</strong><br>
-            • Pure-Path Hardware Lock (Internal Mic Only)<br>
-            • 500Hz Cut (Removes Background Rumble)<br>
-            • 2.5kHz Boost (Enhances Speech Definition)
+        <div style="font-size: 0.75rem; color: #666; line-height: 1.4; border-top: 1px solid #222; padding-top: 10px;">
+            <b>Active SNR Strategies:</b><br>
+            • Hardware Input Lock: Pure Phone Mic Only<br>
+            • Bass Rejection: 450Hz High-Pass<br>
+            • Temporal Compression: 5ms Attack Focus
         </div>
     </div>
+    <div class="status-tag">Research Grade Signal Processing</div>
 </div>
 
 <script>
     let audioCtx, stream, source, eqHigh, eqPeak, dynamics, gainNode, analyser;
     let isRunning = false, animationId;
 
-    async function initCapdSystem() {
+    async function initSpeechFocus() {
         if (isRunning) { location.reload(); return; }
         try {
-            // 1. Exclusive Internal Hardware Lock
+            // 1. Hardware Enumeration & Exclusive Internal Lock
             const devices = await navigator.mediaDevices.enumerateDevices();
             const phoneMic = devices.find(d => d.kind === 'audioinput' && 
                 !d.label.toLowerCase().includes('bluetooth') && 
@@ -65,35 +63,38 @@
             stream = await navigator.mediaDevices.getUserMedia({ 
                 audio: { 
                     deviceId: phoneMic ? { exact: phoneMic.deviceId } : undefined,
-                    echoCancellation: false, noiseSuppression: true, autoGainControl: false 
+                    echoCancellation: false, 
+                    noiseSuppression: true, 
+                    autoGainControl: false 
                 } 
             });
 
             audioCtx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
             source = audioCtx.createMediaStreamSource(stream);
             
-            // 2. Spectral Shaping
+            // 2. High-Pass Filter: Cuts ambient noise and own-voice occlusion
             eqHigh = audioCtx.createBiquadFilter();
             eqHigh.type = "highpass";
-            eqHigh.frequency.value = 500; // Sharp cut for background noise
+            eqHigh.frequency.value = 450; 
 
+            // 3. Speech Clarity Peak: Consonant reinforcement
             eqPeak = audioCtx.createBiquadFilter();
             eqPeak.type = "peaking";
-            eqPeak.frequency.value = 2500; // consonant clarification peak
-            eqPeak.Q.value = 1.2;
-            eqPeak.gain.value = 10;
+            eqPeak.frequency.value = 3200; 
+            eqPeak.Q.value = 1.0;
+            eqPeak.gain.value = 6;
 
-            // 3. Temporal Compression
+            // 4. Dynamics Compressor: Temporal envelope sharpening
             dynamics = audioCtx.createDynamicsCompressor();
-            dynamics.threshold.value = -20;
-            dynamics.attack.value = 0.01; // Fast attack for phoneme preservation
-            dynamics.release.value = 0.20;
+            dynamics.threshold.value = -18;
+            dynamics.attack.value = 0.005; // 5ms ultra-fast attack
+            dynamics.release.value = 0.15; // 150ms stable release
 
             gainNode = audioCtx.createGain();
             analyser = audioCtx.createAnalyser();
-            analyser.fftSize = 128;
+            analyser.fftSize = 64;
 
-            // Connection Chain: Mic -> SNR Filter -> Peak EQ -> Dynamics -> BT Output
+            // Routing: Mic -> SNR Filter -> Clarity Peak -> Dynamics -> Output
             source.connect(eqHigh);
             eqHigh.connect(eqPeak);
             eqPeak.connect(dynamics);
@@ -102,7 +103,7 @@
             gainNode.connect(analyser);
 
             isRunning = true;
-            document.getElementById('toggleBtn').textContent = "STOP & RESET";
+            document.getElementById('toggleBtn').textContent = "STOP FOCUS";
             document.getElementById('toggleBtn').className = "btn-stop";
             
             updateUI();
@@ -111,7 +112,7 @@
             document.getElementById('eqGain').oninput = updateUI;
 
         } catch (err) {
-            alert("Hardware Error: " + err.message);
+            alert("Hardware Lock Failed: " + err.message);
         }
     }
 
@@ -122,7 +123,7 @@
         gainNode.gain.setTargetAtTime(g, audioCtx.currentTime, 0.01);
         eqPeak.gain.setTargetAtTime(s, audioCtx.currentTime, 0.01);
         document.getElementById('gainVal').textContent = Math.round(g * 100) + "%";
-        document.getElementById('sharpVal').textContent = s > 10 ? "Ultra" : (s > 5 ? "High" : "Low");
+        document.getElementById('eqVal').textContent = s > 8 ? "Aggressive" : (s > 4 ? "Optimal" : "Mild");
     }
 
     function drawVisualizer() {
@@ -136,8 +137,8 @@
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         for(let i = 0; i < data.length; i++) {
             const h = (data[i] / 255) * canvas.height;
-            ctx.fillStyle = '#38bdf8';
-            ctx.fillRect(i * 3, canvas.height - h, 2, h);
+            ctx.fillStyle = '#00ffaa';
+            ctx.fillRect(i * 12, canvas.height - h, 8, h);
         }
     }
 </script>
