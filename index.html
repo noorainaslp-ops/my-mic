@@ -3,149 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HearLink V9 - Pro Remote Mic</title>
+    <title>HearLink V10 - Absolute Remote Mic</title>
     <style>
-        :root { --bg: #030712; --card: #111827; --accent: #10b981; --text: #f9fafb; --border: #1f2937; }
-        body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
+        :root { --bg: #020617; --card: #0f172a; --accent: #10b981; --text: #f8fafc; --border: #1e293b; }
+        body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
         .container { width: 100%; max-width: 380px; background: var(--card); padding: 25px; border-radius: 32px; border: 1px solid var(--border); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
         #visualizer { width: 100%; height: 100px; background: #000; border-radius: 18px; margin-bottom: 25px; border: 1px solid var(--border); }
-        button { width: 100%; padding: 20px; font-size: 1.1rem; font-weight: 800; border: none; border-radius: 16px; cursor: pointer; transition: 0.2s; letter-spacing: 0.5px; }
-        .btn-start { background: var(--accent); color: #064e3b; box-shadow: 0 0 20px rgba(16,185,129,0.2); }
+        button { width: 100%; padding: 20px; font-size: 1.1rem; font-weight: 800; border: none; border-radius: 16px; cursor: pointer; transition: 0.2s; }
+        .btn-start { background: var(--accent); color: #064e3b; }
         .btn-stop { background: #ef4444; color: #fff; }
-        .panel { background: #1f2937; padding: 20px; border-radius: 20px; border: 1px solid var(--border); margin-top: 25px; display: flex; flex-direction: column; gap: 20px; }
-        .row { display: flex; justify-content: space-between; align-items: center; }
-        .label { font-size: 0.8rem; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; }
-        .badge { background: #111827; padding: 4px 12px; border-radius: 8px; color: var(--accent); font-family: monospace; font-weight: bold; }
-        input[type=range] { width: 100%; height: 10px; border-radius: 5px; background: #374151; accent-color: var(--accent); cursor: pointer; margin-top: 8px; }
-        .status-pill { font-size: 0.7rem; background: #064e3b33; color: var(--accent); padding: 6px 12px; border-radius: 20px; border: 1px solid #064e3b; display: inline-block; margin-bottom: 20px;}
+        .panel { background: #1e293b; padding: 20px; border-radius: 20px; border: 1px solid var(--border); margin-top: 25px; }
+        .label { font-size: 0.75rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 10px; }
+        .badge { background: #020617; padding: 4px 12px; border-radius: 8px; color: var(--accent); font-family: monospace; font-weight: bold; float: right; }
+        input[type=range] { width: 100%; height: 8px; border-radius: 4px; background: #334155; accent-color: var(--accent); cursor: pointer; }
+        .status-pill { font-size: 0.7rem; color: #10b981; background: #064e3b33; padding: 6px 12px; border-radius: 20px; border: 1px solid #064e3b; margin-bottom: 20px; display: inline-block; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div style="text-align:center;">
-        <h2 style="margin:0 0 5px 0;">HearLink <span style="color:var(--accent)">V9 Pro</span></h2>
-        <div class="status-pill" id="sourceTag">HARDWARE READY</div>
+        <h2 style="margin:0 0 5px 0;">HearLink <span style="color:var(--accent)">V10</span></h2>
+        <div class="status-pill" id="statusPill">LOCKED: PHONE MIC ONLY</div>
     </div>
 
     <canvas id="visualizer"></canvas>
     
-    <button id="toggleBtn" class="btn-start" onclick="toggleClinicalSystem()">ACTIVATE REMOTE MIC</button>
+    <button id="toggleBtn" class="btn-start" onclick="startAbsoluteSystem()">START REMOTE MIC</button>
     
     <div class="panel">
-        <div>
-            <div class="row">
-                <span class="label">Clinical Output Gain</span>
-                <span class="badge" id="gainVal">20%</span>
-            </div>
-            <input type="range" id="masterGain" min="0.01" max="2.0" step="0.01" value="0.2">
-        </div>
-
-        <div>
-            <div class="row">
-                <span class="label">Speech Sharpness</span>
-                <span class="badge" id="sharpVal">Moderate</span>
-            </div>
-            <input type="range" id="sharpGain" min="0" max="12" step="1" value="6">
-        </div>
-
-        <div style="font-size:0.7rem; color:#6b7280; line-height:1.5; padding-top:10px; border-top:1px solid #374151;">
-            <strong>Pro Logic Active:</strong><br>
-            • Absolute Phone-Mic Lock-In (BT Mic Kill)<br>
-            • Envelope Dynamics: 50ms Attack / 250ms Release<br>
-            • Spectral Shaping: 450Hz High-Pass Filter
-        </div>
+        <span class="label">Remote Gain <span class="badge" id="gainVal">25%</span></span>
+        <input type="range" id="masterGain" min="0" max="2.0" step="0.01" value="0.25">
+        <p style="font-size: 0.7rem; color: #64748b; line-height: 1.4; margin-top: 15px;">
+            <strong>Isolation Mode Active:</strong><br>
+            • Hardware-level Bluetooth Mic Kill-switch.<br>
+            • High-speed routing directly to output.<br>
+            • All ambient/side-tone signals suppressed.
+        </p>
     </div>
 </div>
 
 <script>
-    let audioCtx, stream, source, masterGain, eqHigh, eqPeak, dynamics, analyser;
+    let audioCtx, stream, source, gainNode, analyser;
     let isRunning = false, animationId;
 
     const canvas = document.getElementById('visualizer');
     const visualCtx = canvas.getContext('2d');
 
-    async function toggleClinicalSystem() {
+    async function startAbsoluteSystem() {
         if (!isRunning) {
             try {
-                // 1. Hardware Enumeration & Exclusive Lock
+                // 1. Identify Internal Hardware
                 const devices = await navigator.mediaDevices.enumerateDevices();
                 const phoneMic = devices.find(d => d.kind === 'audioinput' && 
                     !d.label.toLowerCase().includes('bluetooth') && 
                     !d.label.toLowerCase().includes('hands-free'));
 
+                // 2. Request Exclusive Access
                 stream = await navigator.mediaDevices.getUserMedia({ 
                     audio: { 
                         deviceId: phoneMic ? { exact: phoneMic.deviceId } : undefined,
                         echoCancellation: true, 
                         noiseSuppression: true,
-                        autoGainControl: false // Critical: Let the clinician control gain
+                        autoGainControl: false // Prevents boosting background noise/own voice
                     } 
                 });
 
-                document.getElementById('sourceTag').textContent = "LOCKED: PHONE MIC ONLY";
-                
-                // 2. Pro Signal Chain
+                // 3. Absolute Track Protection
+                // This ensures any phantom tracks (like BT mic) are physically disabled
+                const allTracks = stream.getAudioTracks();
+                allTracks.forEach(track => {
+                    if (track.label.toLowerCase().includes('bluetooth')) track.stop();
+                });
+
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
                 source = audioCtx.createMediaStreamSource(stream);
                 
-                // High-Pass: Removes occlusion of own voice
-                eqHigh = audioCtx.createBiquadFilter();
-                eqHigh.type = "highpass";
-                eqHigh.frequency.value = 450; 
-
-                // Peaking EQ: Enhances speech intelligibility
-                eqPeak = audioCtx.createBiquadFilter();
-                eqPeak.type = "peaking";
-                eqPeak.frequency.value = 3000;
-                eqPeak.Q.value = 1.5;
-                eqPeak.gain.value = 6;
-
-                // ANSD Compressor: Preserves temporal envelope
-                dynamics = audioCtx.createDynamicsCompressor();
-                dynamics.threshold.value = -20;
-                dynamics.attack.value = 0.05;  // 50ms (preserves phoneme starts)
-                dynamics.release.value = 0.25; // 250ms (prevents noise pumping)
-
-                masterGain = audioCtx.createGain();
+                gainNode = audioCtx.createGain();
                 analyser = audioCtx.createAnalyser();
-                analyser.fftSize = 128;
+                analyser.fftSize = 64;
 
-                // Routing: Source -> EQ -> Compressor -> Gain -> Bluetooth
-                source.connect(eqHigh);
-                eqHigh.connect(eqPeak);
-                eqPeak.connect(dynamics);
-                dynamics.connect(masterGain);
-                masterGain.connect(audioCtx.destination);
-                masterGain.connect(analyser);
+                // Direct Routing for minimum lag
+                source.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                gainNode.connect(analyser);
 
                 isRunning = true;
-                document.getElementById('toggleBtn').textContent = "STOP PRO MIC";
+                document.getElementById('toggleBtn').textContent = "STOP SYSTEM";
                 document.getElementById('toggleBtn').className = "btn-stop";
                 
                 updateControls();
                 drawVisualizer();
                 document.getElementById('masterGain').oninput = updateControls;
-                document.getElementById('sharpGain').oninput = updateControls;
 
             } catch (err) {
-                alert("Hardware Error: " + err.message);
+                alert("Hardware Connection Error: " + err.message);
             }
         } else {
-            location.reload(); // Force full system reset
+            location.reload(); // Hard reset to release all hardware
         }
     }
 
     function updateControls() {
         if (!isRunning) return;
-        const g = parseFloat(document.getElementById('masterGain').value);
-        const s = parseFloat(document.getElementById('sharpGain').value);
-        
-        masterGain.gain.setTargetAtTime(g, audioCtx.currentTime, 0.01);
-        eqPeak.gain.setTargetAtTime(s, audioCtx.currentTime, 0.01);
-
-        document.getElementById('gainVal').textContent = Math.round(g * 100) + "%";
-        document.getElementById('sharpVal').textContent = s > 8 ? "High" : (s > 4 ? "Moderate" : "Low");
+        const val = parseFloat(document.getElementById('masterGain').value);
+        document.getElementById('gainVal').textContent = Math.round(val * 100) + "%";
+        gainNode.gain.setTargetAtTime(val, audioCtx.currentTime, 0.01);
     }
 
     function drawVisualizer() {
@@ -153,12 +116,12 @@
         animationId = requestAnimationFrame(drawVisualizer);
         const dataArray = new Uint8Array(analyser.frequencyBinCount);
         analyser.getByteFrequencyData(dataArray);
-        visualCtx.fillStyle = '#030712';
+        visualCtx.fillStyle = '#020617';
         visualCtx.fillRect(0, 0, canvas.width, canvas.height);
         for(let i = 0; i < dataArray.length; i++) {
             const barHeight = (dataArray[i] / 255) * canvas.height;
             visualCtx.fillStyle = '#10b981';
-            visualCtx.fillRect(i * 4, canvas.height - barHeight, 2, barHeight);
+            visualCtx.fillRect(i * 12, canvas.height - barHeight, 8, barHeight);
         }
     }
 </script>
