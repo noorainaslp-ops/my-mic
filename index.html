@@ -3,108 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HearLink V10 - Absolute Remote Mic</title>
+    <title>HearLink V11 - Absolute Isolation</title>
     <style>
-        :root { --bg: #020617; --card: #0f172a; --accent: #10b981; --text: #f8fafc; --border: #1e293b; }
+        :root { --bg: #020617; --card: #0f172a; --accent: #10b981; --text: #f8fafc; }
         body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
-        .container { width: 100%; max-width: 380px; background: var(--card); padding: 25px; border-radius: 32px; border: 1px solid var(--border); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
-        #visualizer { width: 100%; height: 100px; background: #000; border-radius: 18px; margin-bottom: 25px; border: 1px solid var(--border); }
-        button { width: 100%; padding: 20px; font-size: 1.1rem; font-weight: 800; border: none; border-radius: 16px; cursor: pointer; transition: 0.2s; }
+        .container { width: 100%; max-width: 380px; background: var(--card); padding: 25px; border-radius: 28px; border: 1px solid #1e293b; }
+        #visualizer { width: 100%; height: 90px; background: #000; border-radius: 16px; margin-bottom: 20px; border: 1px solid #1e293b; }
+        button { width: 100%; padding: 18px; font-size: 1.1rem; font-weight: 700; border: none; border-radius: 14px; cursor: pointer; transition: 0.2s; margin-bottom: 15px;}
         .btn-start { background: var(--accent); color: #064e3b; }
         .btn-stop { background: #ef4444; color: #fff; }
-        .panel { background: #1e293b; padding: 20px; border-radius: 20px; border: 1px solid var(--border); margin-top: 25px; }
-        .label { font-size: 0.75rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 10px; }
-        .badge { background: #020617; padding: 4px 12px; border-radius: 8px; color: var(--accent); font-family: monospace; font-weight: bold; float: right; }
-        input[type=range] { width: 100%; height: 8px; border-radius: 4px; background: #334155; accent-color: var(--accent); cursor: pointer; }
-        .status-pill { font-size: 0.7rem; color: #10b981; background: #064e3b33; padding: 6px 12px; border-radius: 20px; border: 1px solid #064e3b; margin-bottom: 20px; display: inline-block; }
+        .panel { background: #1e293b; padding: 15px; border-radius: 15px; border: 1px solid #334155; }
+        .label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; display: block; }
+        input[type=range] { width: 100%; height: 10px; border-radius: 5px; background: #334155; accent-color: var(--accent); cursor: pointer; }
+        .status-badge { font-size: 0.7rem; color: var(--accent); background: #064e3b33; padding: 6px 12px; border-radius: 20px; border: 1px solid #064e3b; margin-bottom: 20px; display: inline-block; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div style="text-align:center;">
-        <h2 style="margin:0 0 5px 0;">HearLink <span style="color:var(--accent)">V10</span></h2>
-        <div class="status-pill" id="statusPill">LOCKED: PHONE MIC ONLY</div>
+        <h2 style="margin:0 0 5px 0;">HearLink <span style="color:var(--accent)">V11</span></h2>
+        <div class="status-badge" id="statusBadge">HARDWARE: PURE PHONE MIC</div>
     </div>
 
     <canvas id="visualizer"></canvas>
     
-    <button id="toggleBtn" class="btn-start" onclick="startAbsoluteSystem()">START REMOTE MIC</button>
+    <button id="toggleBtn" class="btn-start" onclick="startAbsoluteIsolation()">ACTIVATE PURE MIC</button>
     
     <div class="panel">
-        <span class="label">Remote Gain <span class="badge" id="gainVal">25%</span></span>
-        <input type="range" id="masterGain" min="0" max="2.0" step="0.01" value="0.25">
-        <p style="font-size: 0.7rem; color: #64748b; line-height: 1.4; margin-top: 15px;">
-            <strong>Isolation Mode Active:</strong><br>
-            • Hardware-level Bluetooth Mic Kill-switch.<br>
-            • High-speed routing directly to output.<br>
-            • All ambient/side-tone signals suppressed.
-        </p>
+        <span class="label">Remote Sensitivity <span style="float:right; color:var(--accent);" id="gainVal">25%</span></span>
+        <input type="range" id="masterGain" min="0" max="3.0" step="0.01" value="0.25">
+        <div style="font-size: 0.7rem; color: #64748b; line-height: 1.4; margin-top: 12px;">
+            <strong>V11 Logic Active:</strong><br>
+            • Raw Data Mode: Disabled Browser-side Echo Cancellation.<br>
+            • Hardware Lock: Strict Internal Device Indexing.<br>
+            • 400Hz Cut: Electronically removes own-voice bass rumble.
+        </div>
     </div>
 </div>
 
 <script>
-    let audioCtx, stream, source, gainNode, analyser;
+    let audioCtx, stream, source, gainNode, filter, analyser;
     let isRunning = false, animationId;
 
-    const canvas = document.getElementById('visualizer');
-    const visualCtx = canvas.getContext('2d');
-
-    async function startAbsoluteSystem() {
+    async function startAbsoluteIsolation() {
         if (!isRunning) {
             try {
-                // 1. Identify Internal Hardware
+                // 1. Identify the Internal Mic exclusively
                 const devices = await navigator.mediaDevices.enumerateDevices();
-                const phoneMic = devices.find(d => d.kind === 'audioinput' && 
+                const internalMic = devices.find(d => d.kind === 'audioinput' && 
                     !d.label.toLowerCase().includes('bluetooth') && 
                     !d.label.toLowerCase().includes('hands-free'));
 
-                // 2. Request Exclusive Access
+                // 2. Request RAW Audio
+                // We disable echoCancellation to stop the browser from listening 
+                // to the Bluetooth wearer to "cancel" sounds.
                 stream = await navigator.mediaDevices.getUserMedia({ 
                     audio: { 
-                        deviceId: phoneMic ? { exact: phoneMic.deviceId } : undefined,
-                        echoCancellation: true, 
-                        noiseSuppression: true,
-                        autoGainControl: false // Prevents boosting background noise/own voice
+                        deviceId: internalMic ? { exact: internalMic.deviceId } : undefined,
+                        echoCancellation: false, 
+                        noiseSuppression: false,
+                        autoGainControl: false 
                     } 
-                });
-
-                // 3. Absolute Track Protection
-                // This ensures any phantom tracks (like BT mic) are physically disabled
-                const allTracks = stream.getAudioTracks();
-                allTracks.forEach(track => {
-                    if (track.label.toLowerCase().includes('bluetooth')) track.stop();
                 });
 
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
                 source = audioCtx.createMediaStreamSource(stream);
                 
+                // 3. Clinical Frequency Shaping
+                filter = audioCtx.createBiquadFilter();
+                filter.type = "highpass";
+                filter.frequency.value = 400; // Removes "boomy" own-voice intensity
+
                 gainNode = audioCtx.createGain();
                 analyser = audioCtx.createAnalyser();
                 analyser.fftSize = 64;
 
-                // Direct Routing for minimum lag
-                source.connect(gainNode);
+                source.connect(filter);
+                filter.connect(gainNode);
                 gainNode.connect(audioCtx.destination);
                 gainNode.connect(analyser);
 
                 isRunning = true;
                 document.getElementById('toggleBtn').textContent = "STOP SYSTEM";
                 document.getElementById('toggleBtn').className = "btn-stop";
-                
-                updateControls();
+                updateGain();
                 drawVisualizer();
-                document.getElementById('masterGain').oninput = updateControls;
+                document.getElementById('masterGain').oninput = updateGain;
 
             } catch (err) {
-                alert("Hardware Connection Error: " + err.message);
+                alert("Hardware Conflict: " + err.message);
             }
         } else {
-            location.reload(); // Hard reset to release all hardware
+            location.reload(); 
         }
     }
 
-    function updateControls() {
+    function updateGain() {
         if (!isRunning) return;
         const val = parseFloat(document.getElementById('masterGain').value);
         document.getElementById('gainVal').textContent = Math.round(val * 100) + "%";
@@ -116,6 +111,7 @@
         animationId = requestAnimationFrame(drawVisualizer);
         const dataArray = new Uint8Array(analyser.frequencyBinCount);
         analyser.getByteFrequencyData(dataArray);
+        const visualCtx = canvas.getContext('2d');
         visualCtx.fillStyle = '#020617';
         visualCtx.fillRect(0, 0, canvas.width, canvas.height);
         for(let i = 0; i < dataArray.length; i++) {
