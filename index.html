@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HearLink V11 - Absolute Isolation</title>
+    <title>HearLink V12 - Pure Isolation</title>
     <style>
         :root { --bg: #020617; --card: #0f172a; --accent: #10b981; --text: #f8fafc; }
         body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
@@ -22,7 +22,7 @@
 
 <div class="container">
     <div style="text-align:center;">
-        <h2 style="margin:0 0 5px 0;">HearLink <span style="color:var(--accent)">V11</span></h2>
+        <h2 style="margin:0 0 5px 0;">HearLink <span style="color:var(--accent)">V12</span></h2>
         <div class="status-badge" id="statusBadge">HARDWARE: PURE PHONE MIC</div>
     </div>
 
@@ -34,10 +34,10 @@
         <span class="label">Remote Sensitivity <span style="float:right; color:var(--accent);" id="gainVal">25%</span></span>
         <input type="range" id="masterGain" min="0" max="3.0" step="0.01" value="0.25">
         <div style="font-size: 0.7rem; color: #64748b; line-height: 1.4; margin-top: 12px;">
-            <strong>V11 Logic Active:</strong><br>
-            • Raw Data Mode: Disabled Browser-side Echo Cancellation.<br>
-            • Hardware Lock: Strict Internal Device Indexing.<br>
-            • 400Hz Cut: Electronically removes own-voice bass rumble.
+            <strong>V12 Logic Active:</strong><br>
+            • Fixed Canvas Reference Error.<br>
+            • Raw Hardware Input: Disabled Browser Echo Cancellation.<br>
+            • 450Hz High-Pass: Removes own-voice bass rumble.
         </div>
     </div>
 </div>
@@ -45,19 +45,24 @@
 <script>
     let audioCtx, stream, source, gainNode, filter, analyser;
     let isRunning = false, animationId;
+    
+    // Globally define canvas and context to avoid "not defined" errors
+    const canvas = document.getElementById('visualizer');
+    const visualCtx = canvas.getContext('2d');
 
     async function startAbsoluteIsolation() {
         if (!isRunning) {
             try {
-                // 1. Identify the Internal Mic exclusively
+                // 1. Identify Internal Mic exclusively
                 const devices = await navigator.mediaDevices.enumerateDevices();
-                const internalMic = devices.find(d => d.kind === 'audioinput' && 
+                const internalMic = devices.filter(d => d.kind === 'audioinput').find(d => 
                     !d.label.toLowerCase().includes('bluetooth') && 
-                    !d.label.toLowerCase().includes('hands-free'));
+                    !d.label.toLowerCase().includes('hands-free')
+                );
 
                 // 2. Request RAW Audio
-                // We disable echoCancellation to stop the browser from listening 
-                // to the Bluetooth wearer to "cancel" sounds.
+                // Setting echoCancellation to false stops the browser from monitoring 
+                // the Bluetooth output to "correct" the input.
                 stream = await navigator.mediaDevices.getUserMedia({ 
                     audio: { 
                         deviceId: internalMic ? { exact: internalMic.deviceId } : undefined,
@@ -73,7 +78,7 @@
                 // 3. Clinical Frequency Shaping
                 filter = audioCtx.createBiquadFilter();
                 filter.type = "highpass";
-                filter.frequency.value = 400; // Removes "boomy" own-voice intensity
+                filter.frequency.value = 450; // Increased to 450Hz to further isolate own-voice
 
                 gainNode = audioCtx.createGain();
                 analyser = audioCtx.createAnalyser();
@@ -95,7 +100,7 @@
                 alert("Hardware Conflict: " + err.message);
             }
         } else {
-            location.reload(); 
+            location.reload(); // Clean hardware release
         }
     }
 
@@ -111,7 +116,8 @@
         animationId = requestAnimationFrame(drawVisualizer);
         const dataArray = new Uint8Array(analyser.frequencyBinCount);
         analyser.getByteFrequencyData(dataArray);
-        const visualCtx = canvas.getContext('2d');
+        
+        // Use the globally defined visualCtx
         visualCtx.fillStyle = '#020617';
         visualCtx.fillRect(0, 0, canvas.width, canvas.height);
         for(let i = 0; i < dataArray.length; i++) {
