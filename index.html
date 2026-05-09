@@ -3,151 +3,171 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HearLink V6 - Priority Isolation</title>
+    <title>HearLink Pro - ANSD Clinical</title>
     <style>
-        :root { --bg: #030712; --card: #111827; --accent: #10b981; --text: #f3f4f6; }
-        body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
-        .container { width: 100%; max-width: 380px; background: var(--card); padding: 25px; border-radius: 28px; border: 1px solid #374151; }
-        #visualizer { width: 100%; height: 90px; background: #000; border-radius: 16px; margin-bottom: 20px; border: 1px solid #1f2937; }
-        button { width: 100%; padding: 18px; font-size: 1.1rem; font-weight: 700; border: none; border-radius: 14px; cursor: pointer; transition: 0.2s; margin-bottom: 15px;}
-        .btn-start { background: var(--accent); color: #064e3b; }
-        .btn-stop { background: #ef4444; color: #fff; }
-        .mixer-panel { background: #1f2937; padding: 15px; border-radius: 18px; display: flex; flex-direction: column; gap: 15px; }
-        .row { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; font-weight: 500;}
-        .val-badge { color: var(--accent); font-family: ui-monospace, monospace; font-weight: bold; }
-        input[type=range] { width: 100%; height: 10px; border-radius: 5px; background: #374151; accent-color: var(--accent); cursor: pointer; }
-        .label-sm { font-size: 0.7rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+        :root { --bg: #020617; --card: #0f172a; --accent: #38bdf8; --text: #f8fafc; }
+        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
+        .container { width: 100%; max-width: 400px; background: var(--card); padding: 25px; border-radius: 32px; border: 1px solid #1e293b; }
+        #visualizer { width: 100%; height: 100px; background: #000; border-radius: 16px; margin-bottom: 20px; }
+        button { width: 100%; padding: 20px; font-size: 1.1rem; font-weight: 800; border: none; border-radius: 16px; cursor: pointer; transition: 0.2s; }
+        .btn-start { background: var(--accent); color: #082f49; }
+        .btn-stop { background: #f43f5e; color: #fff; }
+        .panel { background: #1e293b; padding: 18px; border-radius: 20px; margin-top: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .row { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; }
+        .badge { color: var(--accent); font-family: monospace; font-weight: bold; font-size: 0.9rem; }
+        input[type=range] { width: 100%; height: 8px; border-radius: 4px; background: #334155; accent-color: var(--accent); }
+        .strategy-tag { font-size: 0.65rem; background: #0ea5e922; color: #7dd3fc; padding: 4px 8px; border-radius: 6px; border: 1px solid #0ea5e944; text-transform: uppercase; letter-spacing: 0.5px;}
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2 style="margin:0 0 15px 0; font-size: 1.3rem; text-align: center;">HearLink <span style="color:var(--accent)">V6 Isolation</span></h2>
+    <h2 style="margin:0 0 5px 0; text-align: center;">HearLink <span style="color:var(--accent)">ANSD</span></h2>
+    <div style="text-align:center; margin-bottom:15px;"><span class="strategy-tag">Temporal Envelope Priority</span></div>
+    
     <canvas id="visualizer"></canvas>
     
-    <button id="toggleBtn" class="btn-start" onclick="toggleSystem()">START SYSTEM</button>
+    <button id="toggleBtn" class="btn-start" onclick="initAnsdSystem()">START CLINICAL STREAM</button>
     
-    <div class="mixer-panel">
-        <div class="label-sm">Focus Control (SNR Priority)</div>
-        <div class="row">
-            <span>BT Mic (Ambient)</span>
-            <span>Phone Mic (Target)</span>
-        </div>
-        <input type="range" id="mixRatio" min="0" max="1" step="0.01" value="1">
-        <div class="row" style="margin-top:-5px;">
-            <span id="btLabel" class="val-badge">0%</span>
-            <span id="phoneLabel" class="val-badge">100%</span>
+    <div class="panel">
+        <div>
+            <div class="row">
+                <span>Signal Clarity (SNR Focus)</span>
+                <span class="badge" id="mixVal">100% Phone</span>
+            </div>
+            <input type="range" id="mixRatio" min="0" max="1" step="0.01" value="1">
         </div>
 
-        <div style="margin-top:10px;">
+        <div>
             <div class="row">
-                <span>Master Gain</span>
-                <span class="val-badge" id="masterVal">15%</span>
+                <span>Envelope Enhancement</span>
+                <span class="badge" id="envVal">Moderate</span>
             </div>
-            <input type="range" id="masterGain" min="0.01" max="1.5" step="0.01" value="0.15">
+            <input type="range" id="envGain" min="0" max="2" step="0.1" value="1.2">
+        </div>
+
+        <div style="font-size:0.75rem; color:#94a3b8; line-height:1.4; border-top:1px solid #334155; pt:10px;">
+            <b>ANSD Strategies Active:</b><br>
+            • 400Hz High-Pass (Occlusion Filter)<br>
+            • 3kHz Speech Peak (Phoneme Sharpening)<br>
+            • Slow-Attack Compression (Temporal Preservation)
         </div>
     </div>
-    
-    <div id="statusText" style="font-size:0.7rem; color:#6b7280; text-align:center; margin-top:15px; font-weight: bold;">SELECT FOCUS: 100% PHONE MIC</div>
 </div>
 
 <script>
-    let audioCtx, phoneStream, btStream;
-    let phoneSource, btSource, phoneGain, btGain, masterGainNode, analyser;
+    let audioCtx, phoneSource, btSource, phoneGain, btGain, masterGainNode, analyser;
+    let eqHigh, eqPeak, dynamicsNode;
     let isRunning = false, animationId;
 
-    const canvas = document.getElementById('visualizer');
-    const visualCtx = canvas.getContext('2d');
+    const visualCtx = document.getElementById('visualizer').getContext('2d');
 
-    async function toggleSystem() {
+    async function initAnsdSystem() {
         if (!isRunning) {
             try {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)({ 
+                    latencyHint: 'interactive',
+                    sampleRate: 44100 
+                });
                 
                 const devices = await navigator.mediaDevices.enumerateDevices();
                 const inputs = devices.filter(d => d.kind === 'audioinput');
 
-                // Strict device filtering
-                const phoneId = inputs.find(d => !d.label.toLowerCase().includes('bluetooth') && !d.label.toLowerCase().includes('hands-free'))?.deviceId;
-                const btId = inputs.find(d => d.label.toLowerCase().includes('bluetooth') || d.label.toLowerCase().includes('hands-free'))?.deviceId;
+                const phoneId = inputs.find(d => !d.label.toLowerCase().includes('bluetooth'))?.deviceId;
+                const btId = inputs.find(d => d.label.toLowerCase().includes('bluetooth'))?.deviceId;
 
-                // Configure Phone Mic (Target) with NO Auto-Gain
+                // 1. INPUT STAGE
                 if (phoneId) {
-                    phoneStream = await navigator.mediaDevices.getUserMedia({ 
+                    const pStream = await navigator.mediaDevices.getUserMedia({ 
                         audio: { deviceId: { exact: phoneId }, echoCancellation: true, autoGainControl: false, noiseSuppression: true } 
                     });
-                    phoneSource = audioCtx.createMediaStreamSource(phoneStream);
+                    phoneSource = audioCtx.createMediaStreamSource(pStream);
                     phoneGain = audioCtx.createGain();
                     phoneSource.connect(phoneGain);
                 }
 
-                // Configure BT Mic (Ambient)
                 if (btId) {
-                    btStream = await navigator.mediaDevices.getUserMedia({ 
-                        audio: { deviceId: { exact: btId }, echoCancellation: true, autoGainControl: false } 
-                    });
-                    btSource = audioCtx.createMediaStreamSource(btStream);
+                    const bStream = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: { exact: btId } } });
+                    btSource = audioCtx.createMediaStreamSource(bStream);
                     btGain = audioCtx.createGain();
                     btSource.connect(btGain);
                 }
 
+                // 2. CLINICAL PROCESSING STAGE
+                // A. High-Pass Filter (Removes low-frequency masking/echo)
+                eqHigh = audioCtx.createBiquadFilter();
+                eqHigh.type = "highpass";
+                eqHigh.frequency.value = 400;
+
+                // B. Speech Peak Filter (Enhances Consonants 2kHz - 4kHz)
+                eqPeak = audioCtx.createBiquadFilter();
+                eqPeak.type = "peaking";
+                eqPeak.frequency.value = 3000;
+                eqPeak.Q.value = 1.2;
+                eqPeak.gain.value = 6; // +6dB at speech critical frequencies
+
+                // C. Temporal Dynamics (Compressor configured for ANSD)
+                dynamicsNode = audioCtx.createDynamicsCompressor();
+                dynamicsNode.threshold.value = -24;
+                dynamicsNode.knee.value = 30;
+                dynamicsNode.ratio.value = 4;
+                dynamicsNode.attack.value = 0.05; // Slightly slower to preserve envelope onsets
+                dynamicsNode.release.value = 0.25; // Slower release to avoid "pumping"
+
+                // 3. MASTER STAGE
                 masterGainNode = audioCtx.createGain();
                 analyser = audioCtx.createAnalyser();
-                analyser.fftSize = 64; 
+                analyser.fftSize = 64;
 
-                if (phoneGain) phoneGain.connect(masterGainNode);
-                if (btGain) btGain.connect(masterGainNode);
-
+                // Routing: Inputs -> EQ -> Dynamics -> Output
+                if (phoneGain) phoneGain.connect(eqHigh);
+                if (btGain) btGain.connect(eqHigh);
+                
+                eqHigh.connect(eqPeak);
+                eqPeak.connect(dynamicsNode);
+                dynamicsNode.connect(masterGainNode);
                 masterGainNode.connect(audioCtx.destination);
                 masterGainNode.connect(analyser);
 
                 isRunning = true;
-                document.getElementById('toggleBtn').textContent = "STOP SYSTEM";
+                document.getElementById('toggleBtn').textContent = "STOP CLINICAL STREAM";
                 document.getElementById('toggleBtn').className = "btn-stop";
-                updateMix();
+                updateSystem();
                 drawVisualizer();
 
-                document.getElementById('mixRatio').oninput = updateMix;
-                document.getElementById('masterGain').oninput = updateMix;
+                document.getElementById('mixRatio').oninput = updateSystem;
+                document.getElementById('envGain').oninput = updateSystem;
 
             } catch (err) {
-                alert("Error: " + err.message);
+                alert("Error initializing: " + err.message);
             }
         } else {
             stopSystem();
         }
     }
 
-    function updateMix() {
+    function updateSystem() {
         if (!isRunning) return;
+        const mix = parseFloat(document.getElementById('mixRatio').value);
+        const env = parseFloat(document.getElementById('envGain').value);
         
-        const mix = parseFloat(document.getElementById('mixRatio').value); 
-        const master = parseFloat(document.getElementById('masterGain').value);
-        
-        // When mix is 1.0 (Phone Only), we HARD MUTE the BT gain to avoid leaks
-        const btVol = mix > 0.95 ? 0 : (1 - mix);
+        // SNR Priority logic
+        const btVol = mix > 0.9 ? 0 : (1 - mix) * 0.5; // Aggressive BT suppression
         const phoneVol = mix;
 
-        if (phoneGain) phoneGain.gain.setTargetAtTime(phoneVol, audioCtx.currentTime, 0.01);
+        phoneGain.gain.setTargetAtTime(phoneVol, audioCtx.currentTime, 0.01);
         if (btGain) btGain.gain.setTargetAtTime(btVol, audioCtx.currentTime, 0.01);
-        if (masterGainNode) masterGainNode.gain.setTargetAtTime(master, audioCtx.currentTime, 0.01);
-
-        document.getElementById('phoneLabel').textContent = Math.round(phoneVol * 100) + "%";
-        document.getElementById('btLabel').textContent = Math.round(btVol * 100) + "%";
-        document.getElementById('masterVal').textContent = Math.round(master * 100) + "%";
         
-        document.getElementById('statusText').textContent = mix > 0.95 ? "FOCUS MODE: 100% PHONE MIC" : "MIXED MODE ACTIVE";
+        // Envelope Enhancement logic
+        eqPeak.gain.setTargetAtTime(6 * env, audioCtx.currentTime, 0.01);
+        masterGainNode.gain.setTargetAtTime(0.3, audioCtx.currentTime, 0.01);
+
+        document.getElementById('mixVal').textContent = mix > 0.9 ? "100% Phone (Focus)" : Math.round(mix*100) + "% Phone";
+        document.getElementById('envVal').textContent = env > 1.5 ? "Aggressive" : (env > 0.7 ? "Moderate" : "Low");
     }
 
     function stopSystem() {
-        if (phoneStream) phoneStream.getTracks().forEach(t => t.stop());
-        if (btStream) btStream.getTracks().forEach(t => t.stop());
-        if (audioCtx) audioCtx.close();
-        cancelAnimationFrame(animationId);
-        isRunning = false;
-        document.getElementById('toggleBtn').textContent = "START SYSTEM";
-        document.getElementById('toggleBtn').className = "btn-start";
-        visualCtx.clearRect(0, 0, canvas.width, canvas.height);
+        location.reload(); // Cleanest way to reset the clinical audio graph
     }
 
     function drawVisualizer() {
@@ -156,12 +176,12 @@
         const bufferLength = analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
         analyser.getByteFrequencyData(dataArray);
-        visualCtx.fillStyle = '#000';
-        visualCtx.fillRect(0, 0, canvas.width, canvas.height);
+        visualCtx.fillStyle = '#020617';
+        visualCtx.fillRect(0, 0, 400, 100);
         for(let i = 0; i < bufferLength; i++) {
-            const barHeight = (dataArray[i] / 255) * canvas.height;
-            visualCtx.fillStyle = '#10b981';
-            visualCtx.fillRect(i * 12, canvas.height - barHeight, 8, barHeight);
+            const barHeight = (dataArray[i] / 255) * 100;
+            visualCtx.fillStyle = '#38bdf8';
+            visualCtx.fillRect(i * 12, 100 - barHeight, 8, barHeight);
         }
     }
 </script>
