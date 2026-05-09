@@ -3,153 +3,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HearLink Ultra V4 - Fixed</title>
+    <title>HearLink V6 - Priority Isolation</title>
     <style>
-        :root { --bg: #05070a; --card: #11141b; --accent: #10b981; --text: #f8fafc; }
-        body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
-        .container { width: 100%; max-width: 380px; background: var(--card); padding: 25px; border-radius: 28px; border: 1px solid #2d3748; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
-        #visualizer { width: 100%; height: 90px; background: #000; border-radius: 16px; margin-bottom: 20px; border: 1px solid #1a202c; }
-        button { width: 100%; padding: 18px; font-size: 1.1rem; font-weight: 700; border: none; border-radius: 14px; cursor: pointer; transition: 0.2s; }
-        .btn-start { background: var(--accent); color: #061c15; }
+        :root { --bg: #030712; --card: #111827; --accent: #10b981; --text: #f3f4f6; }
+        body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
+        .container { width: 100%; max-width: 380px; background: var(--card); padding: 25px; border-radius: 28px; border: 1px solid #374151; }
+        #visualizer { width: 100%; height: 90px; background: #000; border-radius: 16px; margin-bottom: 20px; border: 1px solid #1f2937; }
+        button { width: 100%; padding: 18px; font-size: 1.1rem; font-weight: 700; border: none; border-radius: 14px; cursor: pointer; transition: 0.2s; margin-bottom: 15px;}
+        .btn-start { background: var(--accent); color: #064e3b; }
         .btn-stop { background: #ef4444; color: #fff; }
-        .controls { margin-top: 24px; display: flex; flex-direction: column; gap: 20px; }
-        .row { display: flex; justify-content: space-between; align-items: center; }
-        .val-badge { background: #1a202c; padding: 4px 12px; border-radius: 8px; color: var(--accent); font-family: ui-monospace, monospace; font-size: 0.9rem; }
-        .status { font-size: 0.75rem; color: #718096; text-align: center; margin-top: 20px; text-transform: uppercase; letter-spacing: 0.05em; }
-        input[type=range] { width: 100%; height: 6px; border-radius: 3px; background: #2d3748; accent-color: var(--accent); cursor: pointer; }
-        .info-box { background: #0f172a; padding: 12px; border-radius: 12px; border: 1px solid #1e293b; margin-top: 10px; }
-        .info-box span { display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px; }
-        .info-box strong { font-size: 0.85rem; color: var(--accent); }
+        .mixer-panel { background: #1f2937; padding: 15px; border-radius: 18px; display: flex; flex-direction: column; gap: 15px; }
+        .row { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; font-weight: 500;}
+        .val-badge { color: var(--accent); font-family: ui-monospace, monospace; font-weight: bold; }
+        input[type=range] { width: 100%; height: 10px; border-radius: 5px; background: #374151; accent-color: var(--accent); cursor: pointer; }
+        .label-sm { font-size: 0.7rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2 style="margin:0 0 20px 0; font-size: 1.4rem; text-align: center;">HearLink <span style="color:var(--accent)">Ultra V4</span></h2>
+    <h2 style="margin:0 0 15px 0; font-size: 1.3rem; text-align: center;">HearLink <span style="color:var(--accent)">V6 Isolation</span></h2>
     <canvas id="visualizer"></canvas>
     
-    <button id="toggleBtn" class="btn-start" onclick="toggleMic()">START PHONE MIC</button>
+    <button id="toggleBtn" class="btn-start" onclick="toggleSystem()">START SYSTEM</button>
     
-    <div class="controls">
-        <div>
-            <div class="row" style="margin-bottom: 8px;">
-                <span style="font-weight: 500;">Phone Mic Sensitivity</span>
-                <span class="val-badge" id="gainVal">15%</span>
-            </div>
-            <input type="range" id="gainSlider" min="0.01" max="1.5" step="0.01" value="0.15">
+    <div class="mixer-panel">
+        <div class="label-sm">Focus Control (SNR Priority)</div>
+        <div class="row">
+            <span>BT Mic (Ambient)</span>
+            <span>Phone Mic (Target)</span>
+        </div>
+        <input type="range" id="mixRatio" min="0" max="1" step="0.01" value="1">
+        <div class="row" style="margin-top:-5px;">
+            <span id="btLabel" class="val-badge">0%</span>
+            <span id="phoneLabel" class="val-badge">100%</span>
         </div>
 
-        <div class="info-box">
-            <span>ACTIVE INPUT SOURCE:</span>
-            <strong id="sourceInfo">Scanning devices...</strong>
+        <div style="margin-top:10px;">
+            <div class="row">
+                <span>Master Gain</span>
+                <span class="val-badge" id="masterVal">15%</span>
+            </div>
+            <input type="range" id="masterGain" min="0.01" max="1.5" step="0.01" value="0.15">
         </div>
     </div>
     
-    <div class="status" id="statusText">System Ready</div>
+    <div id="statusText" style="font-size:0.7rem; color:#6b7280; text-align:center; margin-top:15px; font-weight: bold;">SELECT FOCUS: 100% PHONE MIC</div>
 </div>
 
 <script>
-    let audioCtx = null, stream = null, source = null, gainNode = null, filterNode = null, analyser = null;
-    let isRunning = false, animationId = null;
+    let audioCtx, phoneStream, btStream;
+    let phoneSource, btSource, phoneGain, btGain, masterGainNode, analyser;
+    let isRunning = false, animationId;
 
     const canvas = document.getElementById('visualizer');
-    const visualCtx = canvas.getContext('2d'); // Unified context name
-    const toggleBtn = document.getElementById('toggleBtn');
-    const gainSlider = document.getElementById('gainSlider');
-    const gainValDisplay = document.getElementById('gainVal');
-    const sourceInfo = document.getElementById('sourceInfo');
+    const visualCtx = canvas.getContext('2d');
 
-    async function getPhoneMicId() {
-        try {
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            const audioInputs = devices.filter(d => d.kind === 'audioinput');
-            
-            // Priority: Internal/Built-in mics, avoiding "Bluetooth" or "Hands-free"
-            const internalMic = audioInputs.find(d => 
-                d.label.toLowerCase().includes('built-in') || 
-                d.label.toLowerCase().includes('mic') && !d.label.toLowerCase().includes('bluetooth')
-            );
-
-            return internalMic ? internalMic.deviceId : null;
-        } catch (e) {
-            return null;
-        }
-    }
-
-    async function toggleMic() {
+    async function toggleSystem() {
         if (!isRunning) {
             try {
-                // Initial request to get permission and see labels
-                const initialStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                const phoneMicId = await getPhoneMicId();
-                initialStream.getTracks().forEach(t => t.stop()); // Stop temporary stream
-                
-                const constraints = {
-                    audio: {
-                        deviceId: phoneMicId ? { exact: phoneMicId } : undefined,
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        autoGainControl: false
-                    }
-                };
-                
-                stream = await navigator.mediaDevices.getUserMedia(constraints);
-                sourceInfo.textContent = phoneMicId ? "Phone Internal Microphone" : "System Default Mic";
-                
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
-                source = audioCtx.createMediaStreamSource(stream);
                 
-                // Frequency filter to reduce own-voice occlusion/echo
-                filterNode = audioCtx.createBiquadFilter();
-                filterNode.type = "highpass";
-                filterNode.frequency.value = 400; 
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const inputs = devices.filter(d => d.kind === 'audioinput');
 
-                gainNode = audioCtx.createGain();
-                updateSettings();
+                // Strict device filtering
+                const phoneId = inputs.find(d => !d.label.toLowerCase().includes('bluetooth') && !d.label.toLowerCase().includes('hands-free'))?.deviceId;
+                const btId = inputs.find(d => d.label.toLowerCase().includes('bluetooth') || d.label.toLowerCase().includes('hands-free'))?.deviceId;
 
+                // Configure Phone Mic (Target) with NO Auto-Gain
+                if (phoneId) {
+                    phoneStream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: { deviceId: { exact: phoneId }, echoCancellation: true, autoGainControl: false, noiseSuppression: true } 
+                    });
+                    phoneSource = audioCtx.createMediaStreamSource(phoneStream);
+                    phoneGain = audioCtx.createGain();
+                    phoneSource.connect(phoneGain);
+                }
+
+                // Configure BT Mic (Ambient)
+                if (btId) {
+                    btStream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: { deviceId: { exact: btId }, echoCancellation: true, autoGainControl: false } 
+                    });
+                    btSource = audioCtx.createMediaStreamSource(btStream);
+                    btGain = audioCtx.createGain();
+                    btSource.connect(btGain);
+                }
+
+                masterGainNode = audioCtx.createGain();
                 analyser = audioCtx.createAnalyser();
-                analyser.fftSize = 64;
+                analyser.fftSize = 64; 
 
-                source.connect(filterNode);
-                filterNode.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-                gainNode.connect(analyser);
+                if (phoneGain) phoneGain.connect(masterGainNode);
+                if (btGain) btGain.connect(masterGainNode);
+
+                masterGainNode.connect(audioCtx.destination);
+                masterGainNode.connect(analyser);
 
                 isRunning = true;
-                toggleBtn.textContent = "STOP STREAM";
-                toggleBtn.className = "btn-stop";
-                document.getElementById('statusText').textContent = "Streaming Live";
+                document.getElementById('toggleBtn').textContent = "STOP SYSTEM";
+                document.getElementById('toggleBtn').className = "btn-stop";
+                updateMix();
                 drawVisualizer();
-                
-                gainSlider.oninput = updateSettings;
+
+                document.getElementById('mixRatio').oninput = updateMix;
+                document.getElementById('masterGain').oninput = updateMix;
 
             } catch (err) {
-                document.getElementById('statusText').textContent = "ERROR: " + err.message;
-                sourceInfo.textContent = "Access Denied";
+                alert("Error: " + err.message);
             }
         } else {
-            stopMic();
+            stopSystem();
         }
     }
 
-    function stopMic() {
-        if (stream) stream.getTracks().forEach(t => t.stop());
+    function updateMix() {
+        if (!isRunning) return;
+        
+        const mix = parseFloat(document.getElementById('mixRatio').value); 
+        const master = parseFloat(document.getElementById('masterGain').value);
+        
+        // When mix is 1.0 (Phone Only), we HARD MUTE the BT gain to avoid leaks
+        const btVol = mix > 0.95 ? 0 : (1 - mix);
+        const phoneVol = mix;
+
+        if (phoneGain) phoneGain.gain.setTargetAtTime(phoneVol, audioCtx.currentTime, 0.01);
+        if (btGain) btGain.gain.setTargetAtTime(btVol, audioCtx.currentTime, 0.01);
+        if (masterGainNode) masterGainNode.gain.setTargetAtTime(master, audioCtx.currentTime, 0.01);
+
+        document.getElementById('phoneLabel').textContent = Math.round(phoneVol * 100) + "%";
+        document.getElementById('btLabel').textContent = Math.round(btVol * 100) + "%";
+        document.getElementById('masterVal').textContent = Math.round(master * 100) + "%";
+        
+        document.getElementById('statusText').textContent = mix > 0.95 ? "FOCUS MODE: 100% PHONE MIC" : "MIXED MODE ACTIVE";
+    }
+
+    function stopSystem() {
+        if (phoneStream) phoneStream.getTracks().forEach(t => t.stop());
+        if (btStream) btStream.getTracks().forEach(t => t.stop());
         if (audioCtx) audioCtx.close();
         cancelAnimationFrame(animationId);
         isRunning = false;
-        toggleBtn.textContent = "START PHONE MIC";
-        toggleBtn.className = "btn-start";
-        document.getElementById('statusText').textContent = "Stopped";
+        document.getElementById('toggleBtn').textContent = "START SYSTEM";
+        document.getElementById('toggleBtn').className = "btn-start";
         visualCtx.clearRect(0, 0, canvas.width, canvas.height);
-        sourceInfo.textContent = "Scanning devices...";
-    }
-
-    function updateSettings() {
-        const val = parseFloat(gainSlider.value);
-        gainValDisplay.textContent = Math.round(val * 100) + "%";
-        if (gainNode && audioCtx) {
-            gainNode.gain.setTargetAtTime(val, audioCtx.currentTime, 0.01);
-        }
     }
 
     function drawVisualizer() {
@@ -158,15 +156,12 @@
         const bufferLength = analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
         analyser.getByteFrequencyData(dataArray);
-        
         visualCtx.fillStyle = '#000';
         visualCtx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        const barWidth = (canvas.width / bufferLength) * 2;
         for(let i = 0; i < bufferLength; i++) {
             const barHeight = (dataArray[i] / 255) * canvas.height;
             visualCtx.fillStyle = '#10b981';
-            visualCtx.fillRect(i * (barWidth + 2), canvas.height - barHeight, barWidth, barHeight);
+            visualCtx.fillRect(i * 12, canvas.height - barHeight, 8, barHeight);
         }
     }
 </script>
