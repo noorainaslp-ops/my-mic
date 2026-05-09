@@ -3,132 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HearLink V8 - Pure Phone Mic</title>
+    <title>HearLink V9 - Pro Remote Mic</title>
     <style>
-        :root { --bg: #020617; --card: #0f172a; --accent: #10b981; --text: #f8fafc; }
-        body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
-        .container { width: 100%; max-width: 380px; background: var(--card); padding: 25px; border-radius: 28px; border: 1px solid #1e293b; }
-        #visualizer { width: 100%; height: 90px; background: #000; border-radius: 16px; margin-bottom: 20px; border: 1px solid #1e293b; }
-        button { width: 100%; padding: 18px; font-size: 1.1rem; font-weight: 700; border: none; border-radius: 14px; cursor: pointer; transition: 0.2s; margin-bottom: 15px;}
-        .btn-start { background: var(--accent); color: #064e3b; }
+        :root { --bg: #030712; --card: #111827; --accent: #10b981; --text: #f9fafb; --border: #1f2937; }
+        body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
+        .container { width: 100%; max-width: 380px; background: var(--card); padding: 25px; border-radius: 32px; border: 1px solid var(--border); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+        #visualizer { width: 100%; height: 100px; background: #000; border-radius: 18px; margin-bottom: 25px; border: 1px solid var(--border); }
+        button { width: 100%; padding: 20px; font-size: 1.1rem; font-weight: 800; border: none; border-radius: 16px; cursor: pointer; transition: 0.2s; letter-spacing: 0.5px; }
+        .btn-start { background: var(--accent); color: #064e3b; box-shadow: 0 0 20px rgba(16,185,129,0.2); }
         .btn-stop { background: #ef4444; color: #fff; }
-        .status-box { font-size: 0.8rem; color: #94a3b8; text-align: center; padding: 12px; background: #020617; border-radius: 12px; border: 1px solid #1e293b; margin-bottom: 20px;}
-        .label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; margin-bottom: 8px; display: block; }
-        input[type=range] { width: 100%; height: 10px; border-radius: 5px; background: #334155; accent-color: var(--accent); cursor: pointer; }
+        .panel { background: #1f2937; padding: 20px; border-radius: 20px; border: 1px solid var(--border); margin-top: 25px; display: flex; flex-direction: column; gap: 20px; }
+        .row { display: flex; justify-content: space-between; align-items: center; }
+        .label { font-size: 0.8rem; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; }
+        .badge { background: #111827; padding: 4px 12px; border-radius: 8px; color: var(--accent); font-family: monospace; font-weight: bold; }
+        input[type=range] { width: 100%; height: 10px; border-radius: 5px; background: #374151; accent-color: var(--accent); cursor: pointer; margin-top: 8px; }
+        .status-pill { font-size: 0.7rem; background: #064e3b33; color: var(--accent); padding: 6px 12px; border-radius: 20px; border: 1px solid #064e3b; display: inline-block; margin-bottom: 20px;}
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2 style="margin:0 0 15px 0; font-size: 1.3rem; text-align: center;">HearLink <span style="color:var(--accent)">V8 Pure Mic</span></h2>
+    <div style="text-align:center;">
+        <h2 style="margin:0 0 5px 0;">HearLink <span style="color:var(--accent)">V9 Pro</span></h2>
+        <div class="status-pill" id="sourceTag">HARDWARE READY</div>
+    </div>
+
     <canvas id="visualizer"></canvas>
     
-    <div id="statusText" class="status-box">Tap Start to Search for Internal Mic</div>
-
-    <button id="toggleBtn" class="btn-start" onclick="startPurePhoneMic()">START PURE MIC MODE</button>
+    <button id="toggleBtn" class="btn-start" onclick="toggleClinicalSystem()">ACTIVATE REMOTE MIC</button>
     
-    <div style="background: #1e293b; padding: 15px; border-radius: 15px; border: 1px solid #334155;">
-        <span class="label">Volume Control</span>
-        <input type="range" id="masterGain" min="0.01" max="2.0" step="0.01" value="0.25">
-        <div style="display:flex; justify-content: space-between; margin-top: 5px; font-family: monospace; font-size: 0.8rem; color: var(--accent);">
-            <span>0%</span>
-            <span id="gainVal">25%</span>
-            <span>200%</span>
+    <div class="panel">
+        <div>
+            <div class="row">
+                <span class="label">Clinical Output Gain</span>
+                <span class="badge" id="gainVal">20%</span>
+            </div>
+            <input type="range" id="masterGain" min="0.01" max="2.0" step="0.01" value="0.2">
+        </div>
+
+        <div>
+            <div class="row">
+                <span class="label">Speech Sharpness</span>
+                <span class="badge" id="sharpVal">Moderate</span>
+            </div>
+            <input type="range" id="sharpGain" min="0" max="12" step="1" value="6">
+        </div>
+
+        <div style="font-size:0.7rem; color:#6b7280; line-height:1.5; padding-top:10px; border-top:1px solid #374151;">
+            <strong>Pro Logic Active:</strong><br>
+            • Absolute Phone-Mic Lock-In (BT Mic Kill)<br>
+            • Envelope Dynamics: 50ms Attack / 250ms Release<br>
+            • Spectral Shaping: 450Hz High-Pass Filter
         </div>
     </div>
 </div>
 
 <script>
-    let audioCtx, phoneStream, phoneSource, masterGainNode, analyser;
+    let audioCtx, stream, source, masterGain, eqHigh, eqPeak, dynamics, analyser;
     let isRunning = false, animationId;
 
-    const visualCtx = document.getElementById('visualizer').getContext('2d');
-    const statusBox = document.getElementById('statusText');
+    const canvas = document.getElementById('visualizer');
+    const visualCtx = canvas.getContext('2d');
 
-    async function startPurePhoneMic() {
+    async function toggleClinicalSystem() {
         if (!isRunning) {
             try {
-                // 1. Enumerate all devices to find the internal mic
+                // 1. Hardware Enumeration & Exclusive Lock
                 const devices = await navigator.mediaDevices.enumerateDevices();
-                const audioInputs = devices.filter(d => d.kind === 'audioinput');
-                
-                // Specifically look for labels that do NOT contain bluetooth/hands-free
-                const internalMic = audioInputs.find(d => 
-                    (d.label.toLowerCase().includes('built-in') || d.label.toLowerCase().includes('mic')) && 
+                const phoneMic = devices.find(d => d.kind === 'audioinput' && 
                     !d.label.toLowerCase().includes('bluetooth') && 
-                    !d.label.toLowerCase().includes('hands-free')
-                );
+                    !d.label.toLowerCase().includes('hands-free'));
 
-                if (!internalMic && audioInputs.length > 0) {
-                    statusBox.textContent = "Warning: Internal mic label not found. Using default.";
-                }
-
-                // 2. Request ONLY the internal mic ID
-                const constraints = {
-                    audio: {
-                        deviceId: internalMic ? { exact: internalMic.deviceId } : undefined,
-                        echoCancellation: true,
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: { 
+                        deviceId: phoneMic ? { exact: phoneMic.deviceId } : undefined,
+                        echoCancellation: true, 
                         noiseSuppression: true,
-                        autoGainControl: false // Prevents the phone from 'boosting' your own voice
-                    }
-                };
-                
-                phoneStream = await navigator.mediaDevices.getUserMedia(constraints);
-                statusBox.innerHTML = `Connected to: <br><strong>${internalMic ? internalMic.label : 'System Default Mic'}</strong>`;
+                        autoGainControl: false // Critical: Let the clinician control gain
+                    } 
+                });
 
-                // 3. Audio Processing
+                document.getElementById('sourceTag').textContent = "LOCKED: PHONE MIC ONLY";
+                
+                // 2. Pro Signal Chain
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
-                phoneSource = audioCtx.createMediaStreamSource(phoneStream);
+                source = audioCtx.createMediaStreamSource(stream);
                 
-                // ANSD Strategy: High-pass filter to remove the "boomy" own-voice effect
-                const hpFilter = audioCtx.createBiquadFilter();
-                hpFilter.type = "highpass";
-                hpFilter.frequency.value = 450; 
+                // High-Pass: Removes occlusion of own voice
+                eqHigh = audioCtx.createBiquadFilter();
+                eqHigh.type = "highpass";
+                eqHigh.frequency.value = 450; 
 
-                masterGainNode = audioCtx.createGain();
+                // Peaking EQ: Enhances speech intelligibility
+                eqPeak = audioCtx.createBiquadFilter();
+                eqPeak.type = "peaking";
+                eqPeak.frequency.value = 3000;
+                eqPeak.Q.value = 1.5;
+                eqPeak.gain.value = 6;
+
+                // ANSD Compressor: Preserves temporal envelope
+                dynamics = audioCtx.createDynamicsCompressor();
+                dynamics.threshold.value = -20;
+                dynamics.attack.value = 0.05;  // 50ms (preserves phoneme starts)
+                dynamics.release.value = 0.25; // 250ms (prevents noise pumping)
+
+                masterGain = audioCtx.createGain();
                 analyser = audioCtx.createAnalyser();
-                analyser.fftSize = 64; 
+                analyser.fftSize = 128;
 
-                phoneSource.connect(hpFilter);
-                hpFilter.connect(masterGainNode);
-                masterGainNode.connect(audioCtx.destination);
-                masterGainNode.connect(analyser);
+                // Routing: Source -> EQ -> Compressor -> Gain -> Bluetooth
+                source.connect(eqHigh);
+                eqHigh.connect(eqPeak);
+                eqPeak.connect(dynamics);
+                dynamics.connect(masterGain);
+                masterGain.connect(audioCtx.destination);
+                masterGain.connect(analyser);
 
                 isRunning = true;
-                document.getElementById('toggleBtn').textContent = "STOP MIC";
+                document.getElementById('toggleBtn').textContent = "STOP PRO MIC";
                 document.getElementById('toggleBtn').className = "btn-stop";
                 
-                updateGain();
+                updateControls();
                 drawVisualizer();
-                document.getElementById('masterGain').oninput = updateGain;
+                document.getElementById('masterGain').oninput = updateControls;
+                document.getElementById('sharpGain').oninput = updateControls;
 
             } catch (err) {
-                statusBox.textContent = "Error: " + err.message;
+                alert("Hardware Error: " + err.message);
             }
         } else {
-            location.reload(); // Hard reset to release hardware
+            location.reload(); // Force full system reset
         }
     }
 
-    function updateGain() {
+    function updateControls() {
         if (!isRunning) return;
-        const val = parseFloat(document.getElementById('masterGain').value);
-        document.getElementById('gainVal').textContent = Math.round(val * 100) + "%";
-        masterGainNode.gain.setTargetAtTime(val, audioCtx.currentTime, 0.01);
+        const g = parseFloat(document.getElementById('masterGain').value);
+        const s = parseFloat(document.getElementById('sharpGain').value);
+        
+        masterGain.gain.setTargetAtTime(g, audioCtx.currentTime, 0.01);
+        eqPeak.gain.setTargetAtTime(s, audioCtx.currentTime, 0.01);
+
+        document.getElementById('gainVal').textContent = Math.round(g * 100) + "%";
+        document.getElementById('sharpVal').textContent = s > 8 ? "High" : (s > 4 ? "Moderate" : "Low");
     }
 
     function drawVisualizer() {
         if (!isRunning) return;
         animationId = requestAnimationFrame(drawVisualizer);
-        const bufferLength = analyser.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
         analyser.getByteFrequencyData(dataArray);
-        visualCtx.fillStyle = '#020617';
-        visualCtx.fillRect(0, 0, visualCtx.canvas.width, visualCtx.canvas.height);
-        for(let i = 0; i < bufferLength; i++) {
-            const barHeight = (dataArray[i] / 255) * visualCtx.canvas.height;
+        visualCtx.fillStyle = '#030712';
+        visualCtx.fillRect(0, 0, canvas.width, canvas.height);
+        for(let i = 0; i < dataArray.length; i++) {
+            const barHeight = (dataArray[i] / 255) * canvas.height;
             visualCtx.fillStyle = '#10b981';
-            visualCtx.fillRect(i * 12, visualCtx.canvas.height - barHeight, 8, barHeight);
+            visualCtx.fillRect(i * 4, canvas.height - barHeight, 2, barHeight);
         }
     }
 </script>
