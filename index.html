@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HearLink V7 - Absolute Isolation</title>
+    <title>HearLink V8 - Pure Phone Mic</title>
     <style>
         :root { --bg: #020617; --card: #0f172a; --accent: #10b981; --text: #f8fafc; }
         body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
@@ -12,140 +12,109 @@
         button { width: 100%; padding: 18px; font-size: 1.1rem; font-weight: 700; border: none; border-radius: 14px; cursor: pointer; transition: 0.2s; margin-bottom: 15px;}
         .btn-start { background: var(--accent); color: #064e3b; }
         .btn-stop { background: #ef4444; color: #fff; }
-        .mixer-panel { background: #1e293b; padding: 15px; border-radius: 18px; display: flex; flex-direction: column; gap: 15px; border: 1px solid #334155; }
-        .row { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; font-weight: 500;}
-        .val-badge { color: var(--accent); font-family: ui-monospace, monospace; font-weight: bold; }
+        .status-box { font-size: 0.8rem; color: #94a3b8; text-align: center; padding: 12px; background: #020617; border-radius: 12px; border: 1px solid #1e293b; margin-bottom: 20px;}
+        .label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; margin-bottom: 8px; display: block; }
         input[type=range] { width: 100%; height: 10px; border-radius: 5px; background: #334155; accent-color: var(--accent); cursor: pointer; }
-        .status-box { font-size: 0.75rem; color: #94a3b8; text-align: center; margin-top: 15px; padding: 10px; background: #020617; border-radius: 10px; border: 1px solid #1e293b;}
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2 style="margin:0 0 15px 0; font-size: 1.3rem; text-align: center;">HearLink <span style="color:var(--accent)">V7 Absolute</span></h2>
+    <h2 style="margin:0 0 15px 0; font-size: 1.3rem; text-align: center;">HearLink <span style="color:var(--accent)">V8 Pure Mic</span></h2>
     <canvas id="visualizer"></canvas>
     
-    <button id="toggleBtn" class="btn-start" onclick="toggleSystem()">INITIALIZE V7 SYSTEM</button>
-    
-    <div class="mixer-panel">
-        <div style="font-size: 0.7rem; color: #64748b; text-transform: uppercase; margin-bottom: 5px;">Microphone Priority Mixer</div>
-        <div class="row">
-            <span>BT Mic (Disabled)</span>
-            <span>Phone Mic (Isolated)</span>
-        </div>
-        <input type="range" id="mixRatio" min="0" max="1" step="0.01" value="1">
-        <div class="row" style="margin-top:-5px;">
-            <span id="btLabel" class="val-badge">0%</span>
-            <span id="phoneLabel" class="val-badge">100%</span>
-        </div>
+    <div id="statusText" class="status-box">Tap Start to Search for Internal Mic</div>
 
-        <div style="margin-top:10px;">
-            <div class="row">
-                <span>Clinical Gain</span>
-                <span class="val-badge" id="masterVal">15%</span>
-            </div>
-            <input type="range" id="masterGain" min="0.01" max="1.5" step="0.01" value="0.15">
+    <button id="toggleBtn" class="btn-start" onclick="startPurePhoneMic()">START PURE MIC MODE</button>
+    
+    <div style="background: #1e293b; padding: 15px; border-radius: 15px; border: 1px solid #334155;">
+        <span class="label">Volume Control</span>
+        <input type="range" id="masterGain" min="0.01" max="2.0" step="0.01" value="0.25">
+        <div style="display:flex; justify-content: space-between; margin-top: 5px; font-family: monospace; font-size: 0.8rem; color: var(--accent);">
+            <span>0%</span>
+            <span id="gainVal">25%</span>
+            <span>200%</span>
         </div>
     </div>
-    
-    <div id="statusText" class="status-box">SYSTEM IDLE - PAIR BT DEVICE FIRST</div>
 </div>
 
 <script>
-    let audioCtx, phoneStream, btStream;
-    let phoneSource, btSource, phoneGain, btGain, masterGainNode, analyser;
+    let audioCtx, phoneStream, phoneSource, masterGainNode, analyser;
     let isRunning = false, animationId;
 
     const visualCtx = document.getElementById('visualizer').getContext('2d');
+    const statusBox = document.getElementById('statusText');
 
-    async function toggleSystem() {
+    async function startPurePhoneMic() {
         if (!isRunning) {
             try {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+                // 1. Enumerate all devices to find the internal mic
                 const devices = await navigator.mediaDevices.enumerateDevices();
-                const inputs = devices.filter(d => d.kind === 'audioinput');
+                const audioInputs = devices.filter(d => d.kind === 'audioinput');
+                
+                // Specifically look for labels that do NOT contain bluetooth/hands-free
+                const internalMic = audioInputs.find(d => 
+                    (d.label.toLowerCase().includes('built-in') || d.label.toLowerCase().includes('mic')) && 
+                    !d.label.toLowerCase().includes('bluetooth') && 
+                    !d.label.toLowerCase().includes('hands-free')
+                );
 
-                // Logic to find Phone Mic vs BT Mic
-                const phoneId = inputs.find(d => d.label.toLowerCase().includes('built-in') || d.label.toLowerCase().includes('phone'))?.deviceId;
-                const btId = inputs.find(d => d.label.toLowerCase().includes('bluetooth') || d.label.toLowerCase().includes('hands-free'))?.deviceId;
-
-                // 1. Phone Mic Track
-                phoneStream = await navigator.mediaDevices.getUserMedia({ 
-                    audio: { deviceId: phoneId ? { exact: phoneId } : undefined, echoCancellation: true, autoGainControl: false } 
-                });
-                phoneSource = audioCtx.createMediaStreamSource(phoneStream);
-                phoneGain = audioCtx.createGain();
-                phoneSource.connect(phoneGain);
-
-                // 2. Bluetooth Mic Track (Only request if found)
-                if (btId) {
-                    btStream = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: { exact: btId } } });
-                    btSource = audioCtx.createMediaStreamSource(btStream);
-                    btGain = audioCtx.createGain();
-                    btSource.connect(btGain);
+                if (!internalMic && audioInputs.length > 0) {
+                    statusBox.textContent = "Warning: Internal mic label not found. Using default.";
                 }
 
-                // 3. Clinical Signal Chain (ANSD Optimized)
+                // 2. Request ONLY the internal mic ID
+                const constraints = {
+                    audio: {
+                        deviceId: internalMic ? { exact: internalMic.deviceId } : undefined,
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: false // Prevents the phone from 'boosting' your own voice
+                    }
+                };
+                
+                phoneStream = await navigator.mediaDevices.getUserMedia(constraints);
+                statusBox.innerHTML = `Connected to: <br><strong>${internalMic ? internalMic.label : 'System Default Mic'}</strong>`;
+
+                // 3. Audio Processing
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+                phoneSource = audioCtx.createMediaStreamSource(phoneStream);
+                
+                // ANSD Strategy: High-pass filter to remove the "boomy" own-voice effect
                 const hpFilter = audioCtx.createBiquadFilter();
                 hpFilter.type = "highpass";
-                hpFilter.frequency.value = 400; // Cut own-voice low-end boom
+                hpFilter.frequency.value = 450; 
 
                 masterGainNode = audioCtx.createGain();
                 analyser = audioCtx.createAnalyser();
                 analyser.fftSize = 64; 
 
-                if (phoneGain) phoneGain.connect(hpFilter);
-                if (btGain) btGain.connect(hpFilter);
-
+                phoneSource.connect(hpFilter);
                 hpFilter.connect(masterGainNode);
                 masterGainNode.connect(audioCtx.destination);
                 masterGainNode.connect(analyser);
 
                 isRunning = true;
-                document.getElementById('toggleBtn').textContent = "STOP ISOLATION";
+                document.getElementById('toggleBtn').textContent = "STOP MIC";
                 document.getElementById('toggleBtn').className = "btn-stop";
-                updateMix();
+                
+                updateGain();
                 drawVisualizer();
-
-                document.getElementById('mixRatio').oninput = updateMix;
-                document.getElementById('masterGain').oninput = updateMix;
+                document.getElementById('masterGain').oninput = updateGain;
 
             } catch (err) {
-                alert("Hardware Sync Error: " + err.message);
+                statusBox.textContent = "Error: " + err.message;
             }
         } else {
-            stopSystem();
+            location.reload(); // Hard reset to release hardware
         }
     }
 
-    function updateMix() {
+    function updateGain() {
         if (!isRunning) return;
-        const mix = parseFloat(document.getElementById('mixRatio').value); 
-        const master = parseFloat(document.getElementById('masterGain').value);
-        
-        // PHYSICAL TRACK DISABLE: If phone is 100%, we physically stop the BT mic track
-        if (btStream) {
-            btStream.getAudioTracks().forEach(track => {
-                track.enabled = (mix < 0.95); // Disable track if focus is on phone
-            });
-        }
-
-        const phoneVol = mix;
-        const btVol = mix > 0.95 ? 0 : (1 - mix);
-
-        if (phoneGain) phoneGain.gain.setTargetAtTime(phoneVol, audioCtx.currentTime, 0.01);
-        if (btGain) btGain.gain.setTargetAtTime(btVol, audioCtx.currentTime, 0.01);
-        masterGainNode.gain.setTargetAtTime(master, audioCtx.currentTime, 0.01);
-
-        document.getElementById('phoneLabel').textContent = Math.round(phoneVol * 100) + "%";
-        document.getElementById('btLabel').textContent = Math.round(btVol * 100) + "%";
-        document.getElementById('masterVal').textContent = Math.round(master * 100) + "%";
-        
-        document.getElementById('statusText').textContent = mix > 0.95 ? "TRACK STATUS: BT MIC HARD-MUTED" : "TRACK STATUS: MIXING ACTIVE";
-    }
-
-    function stopSystem() {
-        location.reload(); // Force hardware release
+        const val = parseFloat(document.getElementById('masterGain').value);
+        document.getElementById('gainVal').textContent = Math.round(val * 100) + "%";
+        masterGainNode.gain.setTargetAtTime(val, audioCtx.currentTime, 0.01);
     }
 
     function drawVisualizer() {
